@@ -22,6 +22,7 @@ type Entry interface {
 }
 
 type Usage struct {
+	Name    string
 	entries map[string]Entry
 	options []EntryOption
 }
@@ -78,29 +79,12 @@ func (u Usage) Lookup(entry string) string {
 	return "lookup: " + entry
 }
 
-func New() *Usage {
+func New(name string) *Usage {
 	return &Usage{
+		Name:    name,
 		entries: make(map[string]Entry),
 		options: make([]EntryOption, 0),
 	}
-}
-
-var defaultUsage = New()
-
-func AddEntry(e Entry) error {
-	return defaultUsage.AddEntry(e)
-}
-
-func AddOption(o EntryOption) error {
-	return defaultUsage.AddOption(o)
-}
-
-func Global() string {
-	return defaultUsage.Global()
-}
-
-func Lookup(entry string) string {
-	return defaultUsage.Lookup(entry)
 }
 
 const blockTextSize int = 64

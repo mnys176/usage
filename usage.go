@@ -1,30 +1,39 @@
-package usage
+package main
 
 import (
 	"errors"
 	"fmt"
 	"regexp"
+	"sort"
 	"strings"
 )
 
-type EntryOption interface {
-	Aliases() []string
-	Description() string
+type argCollector interface {
 	Args() []string
+	AddArg(string) error
 }
 
-type Entry interface {
-	Name() string
-	Description() string
-	Args() []string
-	Options() []EntryOption
-	AddOption(EntryOption)
+type optionCollector interface {
+	Options() []Option
+	AddOption(Option) error
 }
 
 type Usage struct {
 	Name    string
 	entries map[string]Entry
-	options []EntryOption
+	options []Option
+	args    []string
+}
+
+func (u Usage) Entries() []Entry {
+	output := make([]Entry, 0)
+	for _, v := range u.entries {
+		output = append(output, v)
+	}
+	sort.Slice(output, func(i, j int) bool {
+		return output[i].Name() < output[j].Name()
+	})
+	return output
 }
 
 func (u *Usage) AddEntry(e Entry) error {
@@ -32,42 +41,89 @@ func (u *Usage) AddEntry(e Entry) error {
 		return errors.New("no entry provided")
 	}
 	if e.Name() == "" {
-		return errors.New("entry must have a name")
+		return errors.New("entry name must not be empty")
+	}
+	if len(u.args) > 0 {
+		return errors.New("cannot use subcommands with global args")
 	}
 	u.entries[e.Name()] = e
 	return nil
 }
 
-func (u *Usage) AddOption(o EntryOption) error {
+func (u *Usage) AddOption(o Option) error {
 	if o == nil {
 		return errors.New("no option provided")
+	}
+	if len(o.Aliases()) == 0 {
+		return errors.New("option must have at least one alias")
+	}
+	for _, alias := range o.Aliases() {
+		if len(alias) == 0 {
+			return errors.New("alias string must not be empty")
+		}
 	}
 	u.options = append(u.options, o)
 	return nil
 }
 
+func (u *Usage) AddArg(arg string) error {
+	if len(arg) == 0 {
+		return errors.New("arg string must not be empty")
+	}
+	if len(u.entries) > 0 {
+		return errors.New("cannot use global args with subcommands")
+	}
+	u.args = append(u.args, arg)
+	return nil
+}
+
 func (u Usage) Global() string {
+	var summary, summaryExt strings.Builder
+	summary.WriteString(u.Name)
+	summaryExt.WriteString("\n\nTo learn more about the available options" +
+		" for each command, use the --help flag like so:\n\n" + u.Name)
+	if len(u.entries) > 0 {
+		summary.WriteString(" <command>")
+		summaryExt.WriteString(" <command>")
+	}
+	if len(u.options) > 0 {
+		summary.WriteString(" [options]")
+	}
+	if len(u.args) > 0 {
+		summary.WriteString(" <args>")
+	}
+	summaryExt.WriteString(" --help")
+
+	// If there are no subcommands, this section does not need to
+	// be appended.
+	if len(u.entries) > 0 {
+		summary.WriteString(summaryExt.String())
+	}
+
 	var usage strings.Builder
-	usage.WriteString(`Usage:
-    freeformgen <command> [options] <args>
+	usage.WriteString("Usage:")
+	for _, line := range chopSingleParagraph(summary.String(), 68) {
+		usage.WriteString("\n    " + line)
+	}
+	usage.WriteString("\n")
 
-    To learn more about the available options for each command, use the
-    --help flag like so:
+	// No commands, no command section.
+	if len(u.entries) == 0 {
+		return usage.String()
+	}
 
-    freeformgen <command> --help
+	usage.WriteString("\nCommands:")
 
-Commands:`)
-
-	for _, e := range u.entries {
+	for _, e := range u.Entries() {
 		var b strings.Builder
 		for _, arg := range e.Args() {
-			b.WriteString("<" + arg + "> ")
+			b.WriteString(" <" + arg + ">")
 		}
-		args := strings.TrimSuffix(b.String(), " ")
+		args := b.String()
 
-		summary := fmt.Sprintf("\n    %s %s", e.Name(), args)
-		usage.WriteString(summary)
-		for _, line := range blockText(e.Description(), blockTextSize) {
+		entrySummary := fmt.Sprintf("\n    %s%s", e.Name(), args)
+		usage.WriteString(entrySummary)
+		for _, line := range chopMultipleParagraphs(e.Description(), 64) {
 			usage.WriteString("\n        " + line)
 		}
 		usage.WriteString("\n")
@@ -79,46 +135,49 @@ func (u Usage) Lookup(entry string) string {
 	return "lookup: " + entry
 }
 
-func New(name string) *Usage {
+func NewUsage(name string) *Usage {
 	return &Usage{
 		Name:    name,
 		entries: make(map[string]Entry),
-		options: make([]EntryOption, 0),
+		options: make([]Option, 0),
 	}
 }
 
-const blockTextSize int = 64
-
-func blockText(str string, length int) []string {
-	chopLines := func(s string) []string {
-		re := regexp.MustCompile(" +")
-		words := re.Split(s, -1)
-		lines := make([]string, 0)
-		var lineBuilder strings.Builder
-		for _, w := range words {
-			if len(w) > length {
-				continue
-			}
-			if lineBuilder.Len()+len(w) > length {
-				lines = append(lines, strings.TrimSpace(lineBuilder.String()))
-				lineBuilder.Reset()
-			}
-			lineBuilder.WriteString(w + " ")
-		}
-		lines = append(lines, strings.TrimSpace(lineBuilder.String()))
-		return lines
+func chopSingleParagraph(p string, length int) []string {
+	if length < 0 {
+		panic("length cannot be negative")
 	}
+	p = strings.TrimSpace(p)
+	splitter := regexp.MustCompile(`\s+`)
+	words := splitter.Split(p, -1)
+	lines := make([]string, 0)
 
-	allLines := make([]string, 0)
-	re := regexp.MustCompile("\n+")
-	for _, paragraph := range re.Split(str, -1) {
-		if len(paragraph) > 0 {
-			lines := chopLines(paragraph)
-			lines = append(lines, "")
-			allLines = append(allLines, lines...)
+	var b strings.Builder
+	for _, w := range words {
+		if len(w) > length {
+			continue
+		}
+		if b.Len()+len(w) > length {
+			lines = append(lines, strings.TrimSpace(b.String()))
+			b.Reset()
+		}
+		b.WriteString(w + " ")
+	}
+	lines = append(lines, strings.TrimSpace(b.String()))
+	return lines
+}
+
+func chopMultipleParagraphs(ps string, length int) []string {
+	lines := make([]string, 0)
+	splitter := regexp.MustCompile("\n+")
+	for _, p := range splitter.Split(ps, -1) {
+		if len(p) > 0 {
+			pLines := chopSingleParagraph(p, length)
+			pLines = append(pLines, "")
+			lines = append(lines, pLines...)
 		}
 	}
-	return allLines[:len(allLines)-1]
+	return lines[:len(lines)-1]
 }
 
 // func Lookup(name string) string {

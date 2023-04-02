@@ -37,8 +37,8 @@ func TestDefaultOptionAddArg(t *testing.T) {
 			option.AddArg(iArg)
 			option.AddArg(iArg)
 			option.AddArg(iArg)
-			if len(option.args) != 1 {
-				t.Fatalf("%d args returned but wanted 1", len(option.args))
+			if len(option.args) != 3 {
+				t.Fatalf("%d args returned but wanted 3", len(option.args))
 			}
 			if option.args[0] != iArg {
 				t.Errorf("arg is %q but should be %q", option.args[0], iArg)
@@ -144,13 +144,13 @@ func TestNewOption(t *testing.T) {
 	t.Run("single repeated alias", assertOption(
 		[]string{"foo", "foo"},
 		"foo",
-		makeDefaultOption([]string{"foo"}, "foo"),
+		makeDefaultOption([]string{"foo", "foo"}, "foo"),
 	))
 
 	t.Run("multiple repeated aliases", assertOption(
 		[]string{"foo", "bar", "foo", "bar"},
 		"foo",
-		makeDefaultOption([]string{"foo", "bar"}, "foo"),
+		makeDefaultOption([]string{"foo", "bar", "foo", "bar"}, "foo"),
 	))
 
 	t.Run("empty description string", assertOption(

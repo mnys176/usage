@@ -28,14 +28,7 @@ func (o *defaultOption) AddArg(arg string) error {
 	if len(arg) == 0 {
 		return emptyArgStringErr()
 	}
-
-	exists := false
-	for i := range o.args {
-		exists = o.args[i] == arg
-	}
-	if !exists {
-		o.args = append(o.args, arg)
-	}
+	o.args = append(o.args, arg)
 	return nil
 }
 
@@ -43,19 +36,11 @@ func NewOption(aliases []string, description string) (Option, error) {
 	if len(aliases) == 0 {
 		return nil, noOptionAliasProvidedErr()
 	}
-
-	unique := make([]string, 0)
-	found := make(map[string]bool)
 	for _, alias := range aliases {
 		if len(alias) == 0 {
 			return nil, emptyOptionAliasStringErr()
 		}
-		if _, ok := found[alias]; !ok {
-			unique = append(unique, alias)
-			found[alias] = true
-		}
 	}
-	aliases = unique
 
 	return &defaultOption{
 		aliases:     aliases,

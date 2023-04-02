@@ -1,7 +1,6 @@
-package main
+package usage
 
 import (
-	"errors"
 	"fmt"
 	"regexp"
 	"sort"
@@ -38,13 +37,13 @@ func (u Usage) Entries() []Entry {
 
 func (u *Usage) AddEntry(e Entry) error {
 	if e == nil {
-		return errors.New("no entry provided")
+		return nilEntryProvidedErr()
 	}
 	if e.Name() == "" {
-		return errors.New("entry name must not be empty")
+		return emptyEntryNameStringErr()
 	}
 	if len(u.args) > 0 {
-		return errors.New("cannot use subcommands with global args")
+		return existingArgsErr()
 	}
 	u.entries[e.Name()] = e
 	return nil
@@ -52,14 +51,14 @@ func (u *Usage) AddEntry(e Entry) error {
 
 func (u *Usage) AddOption(o Option) error {
 	if o == nil {
-		return errors.New("no option provided")
+		return nilOptionProvidedErr()
 	}
 	if len(o.Aliases()) == 0 {
-		return errors.New("option must have at least one alias")
+		return noOptionAliasProvidedErr()
 	}
 	for _, alias := range o.Aliases() {
 		if len(alias) == 0 {
-			return errors.New("alias string must not be empty")
+			return emptyOptionAliasStringErr()
 		}
 	}
 	u.options = append(u.options, o)
@@ -68,10 +67,10 @@ func (u *Usage) AddOption(o Option) error {
 
 func (u *Usage) AddArg(arg string) error {
 	if len(arg) == 0 {
-		return errors.New("arg string must not be empty")
+		return emptyArgStringErr()
 	}
 	if len(u.entries) > 0 {
-		return errors.New("cannot use global args with subcommands")
+		return existingEntriesErr()
 	}
 	u.args = append(u.args, arg)
 	return nil

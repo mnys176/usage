@@ -6,9 +6,7 @@ import (
 )
 
 func TestDefaultOptionAddArg(t *testing.T) {
-	makeError := func(s string) error {
-		return errors.New(s)
-	}
+	makeError := errors.New
 
 	makeDefaultOption := func(aliases []string, description string) *defaultOption {
 		return &defaultOption{
@@ -21,7 +19,9 @@ func TestDefaultOptionAddArg(t *testing.T) {
 	assertOptionArgs := func(iArg string) func(*testing.T) {
 		return func(t *testing.T) {
 			option := makeDefaultOption([]string{"foo", "bar"}, "foo")
-			option.AddArg(iArg)
+			if err := option.AddArg(iArg); err != nil {
+				t.Errorf("got %q error but should be nil", err)
+			}
 			if len(option.args) != 1 {
 				t.Fatalf("%d args returned but wanted 1", len(option.args))
 			}
@@ -34,9 +34,12 @@ func TestDefaultOptionAddArg(t *testing.T) {
 	assertRepeatedOptionArgs := func(iArg string) func(*testing.T) {
 		return func(t *testing.T) {
 			option := makeDefaultOption([]string{"foo", "bar"}, "foo")
-			option.AddArg(iArg)
-			option.AddArg(iArg)
-			option.AddArg(iArg)
+			err1 := option.AddArg(iArg)
+			err2 := option.AddArg(iArg)
+			err3 := option.AddArg(iArg)
+			if err := errors.Join(err1, err2, err3); err != nil {
+				t.Errorf("got %q error but should be nil", err)
+			}
 			if len(option.args) != 3 {
 				t.Fatalf("%d args returned but wanted 3", len(option.args))
 			}
@@ -65,9 +68,7 @@ func TestDefaultOptionAddArg(t *testing.T) {
 }
 
 func TestNewOption(t *testing.T) {
-	makeError := func(s string) error {
-		return errors.New(s)
-	}
+	makeError := errors.New
 
 	makeDefaultOption := func(aliases []string, description string) *defaultOption {
 		return &defaultOption{

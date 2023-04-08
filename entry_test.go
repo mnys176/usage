@@ -1,8 +1,6 @@
 package usage
 
-import (
-	"testing"
-)
+import "testing"
 
 func TestEntryAddArg(t *testing.T) {
 	t.Run("baseline", assertEntryArgs_EntryAddArg("foo"))

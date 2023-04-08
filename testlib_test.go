@@ -5,24 +5,25 @@ import (
 	"testing"
 )
 
-var (
-	makeError         = errors.New
-	makeDefaultOption = func(aliases []string, description string) *defaultOption {
-		return &defaultOption{
-			aliases:     aliases,
-			description: description,
-			args:        make([]string, 0),
-		}
+func makeError(s string) error {
+	return errors.New(s)
+}
+
+func makeDefaultOption(aliases []string, description string) *defaultOption {
+	return &defaultOption{
+		aliases:     aliases,
+		description: description,
+		args:        make([]string, 0),
 	}
-	makeDefaultEntry = func(name string, description string) *defaultEntry {
-		return &defaultEntry{
-			name:        name,
-			description: description,
-			options:     make([]Option, 0),
-			args:        make([]string, 0),
-		}
+}
+func makeDefaultEntry(name string, description string) *defaultEntry {
+	return &defaultEntry{
+		name:        name,
+		description: description,
+		options:     make([]Option, 0),
+		args:        make([]string, 0),
 	}
-)
+}
 
 var (
 	assertDefaultOptionAddArgOptionArgs = func(iArg string) func(*testing.T) {

@@ -259,6 +259,19 @@ func assertNoOptionAliasProvidedError_EntryAddOption(iOption Option, want error)
 	}
 }
 
+func assertNoOptionProvidedError_EntryAddOption(iOption Option, want error) func(*testing.T) {
+	return func(t *testing.T) {
+		entry := makeEntry("foo", "foo")
+		oErr := entry.AddOption(iOption)
+		if oErr == nil {
+			t.Fatal("no error returned with nil option")
+		}
+		if !errors.Is(oErr, want) {
+			t.Errorf("got %q error but wanted %q", oErr, want)
+		}
+	}
+}
+
 func assertEntry_NewEntry(iName, iDescription string, want Entry) func(*testing.T) {
 	return func(t *testing.T) {
 		oEntry, _ := NewEntry(iName, iDescription)

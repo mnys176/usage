@@ -39,6 +39,9 @@ func (e defaultEntry) Options() []Option {
 }
 
 func (e *defaultEntry) AddOption(o Option) error {
+	if o == nil {
+		return nilOptionProvidedErr()
+	}
 	if len(o.Aliases()) == 0 {
 		return noOptionAliasProvidedErr()
 	}

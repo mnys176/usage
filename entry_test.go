@@ -11,6 +11,10 @@ func TestEntryAddArg(t *testing.T) {
 func TestEntryAddOption(t *testing.T) {
 	t.Run("baseline", assertEntryOptions_EntryAddOption(makeOption([]string{"foo", "bar"}, "foo")))
 	t.Run("repeated options", assertRepeatedEntryOptions_EntryAddOption(makeOption([]string{"foo", "bar"}, "foo")))
+	t.Run("nil option", assertNoOptionProvidedError_EntryAddOption(
+		nil,
+		makeError("usage: no option provided"),
+	))
 	t.Run("nil option aliases", assertNoOptionAliasProvidedError_EntryAddOption(
 		makeOption(nil, "foo"),
 		makeError("usage: option must have at least one alias"),

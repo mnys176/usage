@@ -25,7 +25,7 @@ func makeDefaultEntry(name string, description string) *defaultEntry {
 	}
 }
 
-func assertDefaultOptionAddArgOptionArgs(iArg string) func(*testing.T) {
+func assertOptionArgs_DefaultOptionAddArg(iArg string) func(*testing.T) {
 	return func(t *testing.T) {
 		option := makeDefaultOption([]string{"foo", "bar"}, "foo")
 		if err := option.AddArg(iArg); err != nil {
@@ -40,7 +40,7 @@ func assertDefaultOptionAddArgOptionArgs(iArg string) func(*testing.T) {
 	}
 }
 
-func assertDefaultOptionAddArgRepeatedOptionArgs(iArg string) func(*testing.T) {
+func assertRepeatedOptionArgs_DefaultOptionAddArg(iArg string) func(*testing.T) {
 	return func(t *testing.T) {
 		option := makeDefaultOption([]string{"foo", "bar"}, "foo")
 		err1 := option.AddArg(iArg)
@@ -58,7 +58,7 @@ func assertDefaultOptionAddArgRepeatedOptionArgs(iArg string) func(*testing.T) {
 	}
 }
 
-func assertDefaultOptionAddArgEmptyArgStringError(iArg string, want error) func(*testing.T) {
+func assertEmptyArgStringError_DefaultOptionAddArg(iArg string, want error) func(*testing.T) {
 	return func(t *testing.T) {
 		option := makeDefaultOption([]string{"foo", "bar"}, "foo")
 		oErr := option.AddArg(iArg)
@@ -71,7 +71,7 @@ func assertDefaultOptionAddArgEmptyArgStringError(iArg string, want error) func(
 	}
 }
 
-func assertNewOptionOption(iAliases []string, iDescription string, want *defaultOption) func(*testing.T) {
+func assertOption_NewOption(iAliases []string, iDescription string, want *defaultOption) func(*testing.T) {
 	return func(t *testing.T) {
 		oOption, _ := NewOption(iAliases, iDescription)
 		aliases := oOption.Aliases()
@@ -99,7 +99,7 @@ func assertNewOptionOption(iAliases []string, iDescription string, want *default
 	}
 }
 
-func assertNewOptionEmptyOptionAliasStringError(iAliases []string, iDescription string, want error) func(*testing.T) {
+func assertEmptyOptionAliasStringError_NewOption(iAliases []string, iDescription string, want error) func(*testing.T) {
 	return func(t *testing.T) {
 		_, oErr := NewOption(iAliases, iDescription)
 		if oErr == nil {
@@ -111,7 +111,7 @@ func assertNewOptionEmptyOptionAliasStringError(iAliases []string, iDescription 
 	}
 }
 
-func assertNewOptionNoOptionAliasProvidedError(iAliases []string, iDescription string, want error) func(*testing.T) {
+func assertNoOptionAliasProvidedError_NewOption(iAliases []string, iDescription string, want error) func(*testing.T) {
 	return func(t *testing.T) {
 		_, oErr := NewOption(iAliases, iDescription)
 		if oErr == nil {
@@ -123,7 +123,7 @@ func assertNewOptionNoOptionAliasProvidedError(iAliases []string, iDescription s
 	}
 }
 
-func assertDefaultEntryAddArgEntryArgs(iArg string) func(*testing.T) {
+func assertEntryArgs_DefaultEntryAddArg(iArg string) func(*testing.T) {
 	return func(t *testing.T) {
 		entry := makeDefaultEntry("foo", "foo")
 		if err := entry.AddArg(iArg); err != nil {
@@ -138,7 +138,7 @@ func assertDefaultEntryAddArgEntryArgs(iArg string) func(*testing.T) {
 	}
 }
 
-func assertDefaultEntryAddArgRepeatedEntryArgs(iArg string) func(*testing.T) {
+func assertRepeatedEntryArgs_DefaultEntryAddArg(iArg string) func(*testing.T) {
 	return func(t *testing.T) {
 		entry := makeDefaultEntry("foo", "foo")
 		err1 := entry.AddArg(iArg)
@@ -156,7 +156,7 @@ func assertDefaultEntryAddArgRepeatedEntryArgs(iArg string) func(*testing.T) {
 	}
 }
 
-func assertDefaultEntryAddArgEmptyArgStringError(iArg string, want error) func(*testing.T) {
+func assertEmptyArgStringError_DefaultEntryAddArg(iArg string, want error) func(*testing.T) {
 	return func(t *testing.T) {
 		entry := makeDefaultEntry("foo", "foo")
 		oErr := entry.AddArg(iArg)
@@ -169,7 +169,7 @@ func assertDefaultEntryAddArgEmptyArgStringError(iArg string, want error) func(*
 	}
 }
 
-func assertDefaultEntryAddOptionEntryOptions(iOption Option) func(*testing.T) {
+func assertEntryOptions_DefaultEntryAddOption(iOption Option) func(*testing.T) {
 	return func(t *testing.T) {
 		entry := makeDefaultEntry("foo", "foo")
 		if err := entry.AddOption(iOption); err != nil {
@@ -194,7 +194,7 @@ func assertDefaultEntryAddOptionEntryOptions(iOption Option) func(*testing.T) {
 	}
 }
 
-func assertDefaultEntryAddOptionRepeatedEntryOptions(iOption Option) func(*testing.T) {
+func assertRepeatedEntryOptions_DefaultEntryAddOption(iOption Option) func(*testing.T) {
 	return func(t *testing.T) {
 		entry := makeDefaultEntry("foo", "foo")
 		err1 := entry.AddOption(iOption)
@@ -222,7 +222,7 @@ func assertDefaultEntryAddOptionRepeatedEntryOptions(iOption Option) func(*testi
 	}
 }
 
-func assertDefaultEntryAddOptionEmptyOptionAliasStringError(iOption Option, want error) func(*testing.T) {
+func assertEmptyOptionAliasStringError_DefaultEntryAddOption(iOption Option, want error) func(*testing.T) {
 	return func(t *testing.T) {
 		entry := makeDefaultEntry("foo", "foo")
 		oErr := entry.AddOption(iOption)
@@ -235,7 +235,7 @@ func assertDefaultEntryAddOptionEmptyOptionAliasStringError(iOption Option, want
 	}
 }
 
-func assertDefaultEntryAddOptionNoOptionAliasProvidedError(iOption Option, want error) func(*testing.T) {
+func assertNoOptionAliasProvidedError_DefaultEntryAddOption(iOption Option, want error) func(*testing.T) {
 	return func(t *testing.T) {
 		entry := makeDefaultEntry("foo", "foo")
 		oErr := entry.AddOption(iOption)
@@ -248,7 +248,7 @@ func assertDefaultEntryAddOptionNoOptionAliasProvidedError(iOption Option, want 
 	}
 }
 
-func assertNewEntryEntry(iName, iDescription string, want *defaultEntry) func(*testing.T) {
+func assertEntry_NewEntry(iName, iDescription string, want *defaultEntry) func(*testing.T) {
 	return func(t *testing.T) {
 		oEntry, _ := NewEntry(iName, iDescription)
 		if name := oEntry.Name(); name != want.name {
@@ -266,7 +266,7 @@ func assertNewEntryEntry(iName, iDescription string, want *defaultEntry) func(*t
 	}
 }
 
-func assertNewEntryEmptyNameStringError(iName, iDescription string, want error) func(*testing.T) {
+func assertEmptyNameStringError_NewEntry(iName, iDescription string, want error) func(*testing.T) {
 	return func(t *testing.T) {
 		_, oErr := NewEntry(iName, iDescription)
 		if oErr == nil {

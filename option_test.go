@@ -135,49 +135,41 @@ func TestNewOption(t *testing.T) {
 		"foo",
 		makeDefaultOption([]string{"foo", "bar"}, "foo"),
 	))
-
 	t.Run("single alias", assertOption(
 		[]string{"foo"},
 		"foo",
 		makeDefaultOption([]string{"foo"}, "foo"),
 	))
-
 	t.Run("single repeated alias", assertOption(
 		[]string{"foo", "foo"},
 		"foo",
 		makeDefaultOption([]string{"foo", "foo"}, "foo"),
 	))
-
 	t.Run("multiple repeated aliases", assertOption(
 		[]string{"foo", "bar", "foo", "bar"},
 		"foo",
 		makeDefaultOption([]string{"foo", "bar", "foo", "bar"}, "foo"),
 	))
-
 	t.Run("empty description string", assertOption(
 		[]string{"foo", "bar"},
 		"",
 		makeDefaultOption([]string{"foo", "bar"}, ""),
 	))
-
 	t.Run("nil aliases", assertNoOptionAliasProvidedError(
 		nil,
 		"foo",
 		makeError("usage: option must have at least one alias"),
 	))
-
 	t.Run("no aliases", assertNoOptionAliasProvidedError(
 		make([]string, 0),
 		"foo",
 		makeError("usage: option must have at least one alias"),
 	))
-
 	t.Run("single empty alias string", assertEmptyOptionAliasStringError(
 		[]string{""},
 		"foo",
 		makeError("usage: alias string must not be empty"),
 	))
-
 	t.Run("multiple empty alias strings", assertEmptyOptionAliasStringError(
 		[]string{"foo", "", "bar", ""},
 		"foo",

@@ -26,44 +26,40 @@ func (e defaultEntry) Args() []string {
 	return e.args
 }
 
-func (e *defaultEntry) AddArg(arg string) (err error) {
+func (e *defaultEntry) AddArg(arg string) error {
 	if len(arg) == 0 {
-		err = emptyArgStringErr()
-		return
+		return emptyArgStringErr()
 	}
 	e.args = append(e.args, arg)
-	return
+	return nil
 }
 
 func (e defaultEntry) Options() []Option {
 	return e.options
 }
 
-func (e *defaultEntry) AddOption(o Option) (err error) {
+func (e *defaultEntry) AddOption(o Option) error {
 	if len(o.Aliases()) == 0 {
-		err = noOptionAliasProvidedErr()
-		return
+		return noOptionAliasProvidedErr()
 	}
 	for _, alias := range o.Aliases() {
 		if len(alias) == 0 {
-			err = emptyOptionAliasStringErr()
-			return
+			return emptyOptionAliasStringErr()
 		}
 	}
+
 	e.options = append(e.options, o)
-	return
+	return nil
 }
 
-func NewEntry(name, description string) (e Entry, err error) {
+func NewEntry(name, description string) (Entry, error) {
 	if name == "" {
-		err = emptyEntryNameStringErr()
-		return
+		return nil, emptyEntryNameStringErr()
 	}
-	e = &defaultEntry{
+	return &defaultEntry{
 		name:        name,
 		description: description,
 		args:        make([]string, 0),
 		options:     make([]Option, 0),
-	}
-	return
+	}, nil
 }

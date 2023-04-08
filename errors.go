@@ -43,7 +43,7 @@ func noOptionAliasProvidedErr() error {
 
 func emptyEntryNameStringErr() error {
 	e := newUsageError()
-	e.Err = errors.New("entry name must not be empty")
+	e.Err = errors.New("name string must not be empty")
 	return e
 }
 

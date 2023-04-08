@@ -4,37 +4,37 @@ import (
 	"testing"
 )
 
-func TestDefaultOptionAddArg(t *testing.T) {
-	t.Run("baseline", assertOptionArgs_DefaultOptionAddArg("foo"))
-	t.Run("repeated arg strings", assertRepeatedOptionArgs_DefaultOptionAddArg("foo"))
-	t.Run("empty arg string", assertEmptyArgStringError_DefaultOptionAddArg("", makeError("usage: arg string must not be empty")))
+func TestOptionAddArg(t *testing.T) {
+	t.Run("baseline", assertOptionArgs_OptionAddArg("foo"))
+	t.Run("repeated arg strings", assertRepeatedOptionArgs_OptionAddArg("foo"))
+	t.Run("empty arg string", assertEmptyArgStringError_OptionAddArg("", makeError("usage: arg string must not be empty")))
 }
 
 func TestNewOption(t *testing.T) {
 	t.Run("baseline", assertOption_NewOption(
 		[]string{"foo", "bar"},
 		"foo",
-		makeDefaultOption([]string{"foo", "bar"}, "foo"),
+		makeOption([]string{"foo", "bar"}, "foo"),
 	))
 	t.Run("single alias", assertOption_NewOption(
 		[]string{"foo"},
 		"foo",
-		makeDefaultOption([]string{"foo"}, "foo"),
+		makeOption([]string{"foo"}, "foo"),
 	))
 	t.Run("single repeated alias", assertOption_NewOption(
 		[]string{"foo", "foo"},
 		"foo",
-		makeDefaultOption([]string{"foo", "foo"}, "foo"),
+		makeOption([]string{"foo", "foo"}, "foo"),
 	))
 	t.Run("multiple repeated aliases", assertOption_NewOption(
 		[]string{"foo", "bar", "foo", "bar"},
 		"foo",
-		makeDefaultOption([]string{"foo", "bar", "foo", "bar"}, "foo"),
+		makeOption([]string{"foo", "bar", "foo", "bar"}, "foo"),
 	))
 	t.Run("empty description string", assertOption_NewOption(
 		[]string{"foo", "bar"},
 		"",
-		makeDefaultOption([]string{"foo", "bar"}, ""),
+		makeOption([]string{"foo", "bar"}, ""),
 	))
 	t.Run("nil aliases", assertNoOptionAliasProvidedError_NewOption(
 		nil,

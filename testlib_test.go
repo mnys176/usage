@@ -9,14 +9,14 @@ func makeError(s string) error {
 	return errors.New(s)
 }
 
-func makeDefaultOption(aliases []string, description string) *defaultOption {
+func makeOption(aliases []string, description string) Option {
 	return &defaultOption{
 		aliases:     aliases,
 		description: description,
 		args:        make([]string, 0),
 	}
 }
-func makeDefaultEntry(name string, description string) *defaultEntry {
+func makeEntry(name string, description string) Entry {
 	return &defaultEntry{
 		name:        name,
 		description: description,
@@ -25,42 +25,44 @@ func makeDefaultEntry(name string, description string) *defaultEntry {
 	}
 }
 
-func assertOptionArgs_DefaultOptionAddArg(iArg string) func(*testing.T) {
+func assertOptionArgs_OptionAddArg(iArg string) func(*testing.T) {
 	return func(t *testing.T) {
-		option := makeDefaultOption([]string{"foo", "bar"}, "foo")
+		option := makeOption([]string{"foo", "bar"}, "foo")
 		if err := option.AddArg(iArg); err != nil {
 			t.Errorf("got %q error but should be nil", err)
 		}
-		if len(option.args) != 1 {
-			t.Fatalf("%d args returned but wanted 1", len(option.args))
+		optionArgs := option.Args()
+		if len(optionArgs) != 1 {
+			t.Fatalf("%d args returned but wanted 1", len(optionArgs))
 		}
-		if option.args[0] != iArg {
-			t.Errorf("arg is %q but should be %q", option.args[0], iArg)
+		if optionArgs[0] != iArg {
+			t.Errorf("arg is %q but should be %q", optionArgs[0], iArg)
 		}
 	}
 }
 
-func assertRepeatedOptionArgs_DefaultOptionAddArg(iArg string) func(*testing.T) {
+func assertRepeatedOptionArgs_OptionAddArg(iArg string) func(*testing.T) {
 	return func(t *testing.T) {
-		option := makeDefaultOption([]string{"foo", "bar"}, "foo")
+		option := makeOption([]string{"foo", "bar"}, "foo")
 		err1 := option.AddArg(iArg)
 		err2 := option.AddArg(iArg)
 		err3 := option.AddArg(iArg)
 		if err := errors.Join(err1, err2, err3); err != nil {
 			t.Errorf("got %q error but should be nil", err)
 		}
-		if len(option.args) != 3 {
-			t.Fatalf("%d args returned but wanted 3", len(option.args))
+		optionArgs := option.Args()
+		if len(optionArgs) != 3 {
+			t.Fatalf("%d args returned but wanted 3", len(optionArgs))
 		}
-		if option.args[0] != iArg {
-			t.Errorf("arg is %q but should be %q", option.args[0], iArg)
+		if optionArgs[0] != iArg {
+			t.Errorf("arg is %q but should be %q", optionArgs[0], iArg)
 		}
 	}
 }
 
-func assertEmptyArgStringError_DefaultOptionAddArg(iArg string, want error) func(*testing.T) {
+func assertEmptyArgStringError_OptionAddArg(iArg string, want error) func(*testing.T) {
 	return func(t *testing.T) {
-		option := makeDefaultOption([]string{"foo", "bar"}, "foo")
+		option := makeOption([]string{"foo", "bar"}, "foo")
 		oErr := option.AddArg(iArg)
 		if oErr == nil {
 			t.Fatal("no error returned with an empty arg string")
@@ -71,29 +73,32 @@ func assertEmptyArgStringError_DefaultOptionAddArg(iArg string, want error) func
 	}
 }
 
-func assertOption_NewOption(iAliases []string, iDescription string, want *defaultOption) func(*testing.T) {
+func assertOption_NewOption(iAliases []string, iDescription string, want Option) func(*testing.T) {
 	return func(t *testing.T) {
 		oOption, _ := NewOption(iAliases, iDescription)
-		aliases := oOption.Aliases()
-		if len(aliases) != len(want.aliases) {
-			t.Fatalf("%d aliases returned but wanted %d", len(aliases), len(want.aliases))
+		oOptionAliases := oOption.Aliases()
+		wantAliases := want.Aliases()
+		if len(oOptionAliases) != len(wantAliases) {
+			t.Fatalf("%d aliases returned but wanted %d", len(oOptionAliases), len(wantAliases))
 		}
-		for i := range aliases {
-			if aliases[i] != want.aliases[i] {
-				t.Errorf("alias is %q but should be %q", aliases[i], want.aliases[i])
+		for i := range oOptionAliases {
+			if oOptionAliases[i] != wantAliases[i] {
+				t.Errorf("alias is %q but should be %q", oOptionAliases[i], wantAliases[i])
 			}
 		}
-		description := oOption.Description()
-		if description != want.description {
-			t.Errorf("description is %q but should be %q", description, want.description)
+		oOptionDescription := oOption.Description()
+		wantDescription := want.Description()
+		if oOptionDescription != wantDescription {
+			t.Errorf("description is %q but should be %q", oOptionDescription, wantDescription)
 		}
-		args := oOption.Args()
-		if len(args) != len(want.args) {
-			t.Fatalf("%d args returned but wanted %d", len(args), len(want.args))
+		oOptionArgs := oOption.Args()
+		wantArgs := want.Args()
+		if len(oOptionArgs) != len(wantArgs) {
+			t.Fatalf("%d args returned but wanted %d", len(oOptionArgs), len(wantArgs))
 		}
-		for i := range args {
-			if args[i] != want.args[i] {
-				t.Errorf("arg is %q but should be %q", args[i], want.args[i])
+		for i := range oOptionArgs {
+			if oOptionArgs[i] != wantArgs[i] {
+				t.Errorf("arg is %q but should be %q", oOptionArgs[i], wantArgs[i])
 			}
 		}
 	}
@@ -123,42 +128,44 @@ func assertNoOptionAliasProvidedError_NewOption(iAliases []string, iDescription 
 	}
 }
 
-func assertEntryArgs_DefaultEntryAddArg(iArg string) func(*testing.T) {
+func assertEntryArgs_EntryAddArg(iArg string) func(*testing.T) {
 	return func(t *testing.T) {
-		entry := makeDefaultEntry("foo", "foo")
+		entry := makeEntry("foo", "foo")
 		if err := entry.AddArg(iArg); err != nil {
 			t.Errorf("got %q error but should be nil", err)
 		}
-		if len(entry.args) != 1 {
-			t.Fatalf("%d args returned but wanted 1", len(entry.args))
+		entryArgs := entry.Args()
+		if len(entryArgs) != 1 {
+			t.Fatalf("%d args returned but wanted 1", len(entryArgs))
 		}
-		if entry.args[0] != iArg {
-			t.Errorf("arg is %q but should be %q", entry.args[0], iArg)
+		if entryArgs[0] != iArg {
+			t.Errorf("arg is %q but should be %q", entryArgs[0], iArg)
 		}
 	}
 }
 
-func assertRepeatedEntryArgs_DefaultEntryAddArg(iArg string) func(*testing.T) {
+func assertRepeatedEntryArgs_EntryAddArg(iArg string) func(*testing.T) {
 	return func(t *testing.T) {
-		entry := makeDefaultEntry("foo", "foo")
+		entry := makeEntry("foo", "foo")
 		err1 := entry.AddArg(iArg)
 		err2 := entry.AddArg(iArg)
 		err3 := entry.AddArg(iArg)
 		if err := errors.Join(err1, err2, err3); err != nil {
 			t.Errorf("got %q error but should be nil", err)
 		}
-		if len(entry.args) != 3 {
-			t.Fatalf("%d args returned but wanted 3", len(entry.args))
+		entryArgs := entry.Args()
+		if len(entryArgs) != 3 {
+			t.Fatalf("%d args returned but wanted 3", len(entryArgs))
 		}
-		if entry.args[0] != iArg {
-			t.Errorf("arg is %q but should be %q", entry.args[0], iArg)
+		if entryArgs[0] != iArg {
+			t.Errorf("arg is %q but should be %q", entryArgs[0], iArg)
 		}
 	}
 }
 
-func assertEmptyArgStringError_DefaultEntryAddArg(iArg string, want error) func(*testing.T) {
+func assertEmptyArgStringError_EntryAddArg(iArg string, want error) func(*testing.T) {
 	return func(t *testing.T) {
-		entry := makeDefaultEntry("foo", "foo")
+		entry := makeEntry("foo", "foo")
 		oErr := entry.AddArg(iArg)
 		if oErr == nil {
 			t.Fatal("no error returned with an empty arg string")
@@ -169,24 +176,26 @@ func assertEmptyArgStringError_DefaultEntryAddArg(iArg string, want error) func(
 	}
 }
 
-func assertEntryOptions_DefaultEntryAddOption(iOption Option) func(*testing.T) {
+func assertEntryOptions_EntryAddOption(iOption Option) func(*testing.T) {
 	return func(t *testing.T) {
-		entry := makeDefaultEntry("foo", "foo")
+		entry := makeEntry("foo", "foo")
 		if err := entry.AddOption(iOption); err != nil {
 			t.Errorf("got %q error but should be nil", err)
 		}
-		if len(entry.options) != 1 {
-			t.Fatalf("%d options returned but wanted 1", len(entry.options))
+		entryOptions := entry.Options()
+		if len(entryOptions) != 1 {
+			t.Fatalf("%d options returned but wanted 1", len(entryOptions))
 		}
-		if len(entry.options[0].Aliases()) != len(iOption.Aliases()) {
+		entryOption0Aliases := entryOptions[0].Aliases()
+		iOptionAliases := iOption.Aliases()
+		if len(entryOption0Aliases) != len(iOptionAliases) {
 			t.Fatalf(
 				"%d option aliases returned but wanted %d",
-				len(entry.options[0].Aliases()),
+				len(entryOption0Aliases),
 				len(iOption.Aliases()),
 			)
 		}
-		iOptionAliases := iOption.Aliases()
-		for i, alias := range entry.options[0].Aliases() {
+		for i, alias := range entryOption0Aliases {
 			if alias != iOptionAliases[i] {
 				t.Errorf("option alias is %q but should be %q", alias, iOptionAliases[i])
 			}
@@ -194,27 +203,29 @@ func assertEntryOptions_DefaultEntryAddOption(iOption Option) func(*testing.T) {
 	}
 }
 
-func assertRepeatedEntryOptions_DefaultEntryAddOption(iOption Option) func(*testing.T) {
+func assertRepeatedEntryOptions_EntryAddOption(iOption Option) func(*testing.T) {
 	return func(t *testing.T) {
-		entry := makeDefaultEntry("foo", "foo")
+		entry := makeEntry("foo", "foo")
 		err1 := entry.AddOption(iOption)
 		err2 := entry.AddOption(iOption)
 		err3 := entry.AddOption(iOption)
 		if err := errors.Join(err1, err2, err3); err != nil {
 			t.Errorf("got %q error but should be nil", err)
 		}
-		if len(entry.options) != 3 {
-			t.Fatalf("%d options returned but wanted 3", len(entry.options))
+		entryOptions := entry.Options()
+		if len(entryOptions) != 3 {
+			t.Fatalf("%d options returned but wanted 3", len(entryOptions))
 		}
-		if len(entry.options[0].Aliases()) != len(iOption.Aliases()) {
+		entryOption0Aliases := entryOptions[0].Aliases()
+		iOptionAliases := iOption.Aliases()
+		if len(entryOptions[0].Aliases()) != len(iOptionAliases) {
 			t.Fatalf(
 				"%d option aliases returned but wanted %d",
-				len(entry.options[0].Aliases()),
+				len(entryOption0Aliases),
 				len(iOption.Aliases()),
 			)
 		}
-		iOptionAliases := iOption.Aliases()
-		for i, alias := range entry.options[0].Aliases() {
+		for i, alias := range entryOption0Aliases {
 			if alias != iOptionAliases[i] {
 				t.Errorf("option alias is %q but should be %q", alias, iOptionAliases[i])
 			}
@@ -222,9 +233,9 @@ func assertRepeatedEntryOptions_DefaultEntryAddOption(iOption Option) func(*test
 	}
 }
 
-func assertEmptyOptionAliasStringError_DefaultEntryAddOption(iOption Option, want error) func(*testing.T) {
+func assertEmptyOptionAliasStringError_EntryAddOption(iOption Option, want error) func(*testing.T) {
 	return func(t *testing.T) {
-		entry := makeDefaultEntry("foo", "foo")
+		entry := makeEntry("foo", "foo")
 		oErr := entry.AddOption(iOption)
 		if oErr == nil {
 			t.Fatal("no error returned with an empty alias string")
@@ -235,9 +246,9 @@ func assertEmptyOptionAliasStringError_DefaultEntryAddOption(iOption Option, wan
 	}
 }
 
-func assertNoOptionAliasProvidedError_DefaultEntryAddOption(iOption Option, want error) func(*testing.T) {
+func assertNoOptionAliasProvidedError_EntryAddOption(iOption Option, want error) func(*testing.T) {
 	return func(t *testing.T) {
-		entry := makeDefaultEntry("foo", "foo")
+		entry := makeEntry("foo", "foo")
 		oErr := entry.AddOption(iOption)
 		if oErr == nil {
 			t.Fatal("no error returned with no provided aliases")
@@ -248,19 +259,25 @@ func assertNoOptionAliasProvidedError_DefaultEntryAddOption(iOption Option, want
 	}
 }
 
-func assertEntry_NewEntry(iName, iDescription string, want *defaultEntry) func(*testing.T) {
+func assertEntry_NewEntry(iName, iDescription string, want Entry) func(*testing.T) {
 	return func(t *testing.T) {
 		oEntry, _ := NewEntry(iName, iDescription)
-		if name := oEntry.Name(); name != want.name {
-			t.Errorf("name is %q but should be %q", name, want.name)
+		oEntryName := oEntry.Name()
+		wantName := want.Name()
+		if oEntryName != wantName {
+			t.Errorf("name is %q but should be %q", oEntryName, wantName)
 		}
-		if description := oEntry.Description(); description != want.description {
-			t.Errorf("description is %q but should be %q", description, want.description)
+		oEntryDescription := oEntry.Description()
+		wantDescription := want.Description()
+		if oEntryDescription != wantDescription {
+			t.Errorf("description is %q but should be %q", oEntryDescription, wantDescription)
 		}
-		if args := oEntry.Args(); args == nil || len(args) != 0 {
+		oEntryArgs := oEntry.Args()
+		if oEntryArgs == nil || len(oEntryArgs) != 0 {
 			t.Error("args not initialized to an empty slice")
 		}
-		if options := oEntry.Options(); options == nil || len(options) != 0 {
+		oEntryOptions := oEntry.Options()
+		if oEntryOptions == nil || len(oEntryOptions) != 0 {
 			t.Error("options not initialized to an empty slice")
 		}
 	}

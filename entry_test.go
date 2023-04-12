@@ -59,7 +59,7 @@ func (eaat entryAddArgTester) assertErrEmptyArgString() func(*testing.T) {
 }
 
 type entryAddOptionTester struct {
-	iOption Option
+	iOption *Option
 	oErr    error
 }
 
@@ -73,8 +73,8 @@ func (eaot entryAddOptionTester) assertEntryOptions() func(*testing.T) {
 		if len(got) != 1 {
 			t.Fatalf("%d options returned but wanted 1", len(got))
 		}
-		got0Aliases := got[0].Aliases()
-		iOptionAliases := eaot.iOption.Aliases()
+		got0Aliases := got[0].Aliases
+		iOptionAliases := eaot.iOption.Aliases
 		if len(got0Aliases) != len(iOptionAliases) {
 			t.Fatalf(
 				"%d option aliases returned but wanted %d",
@@ -103,8 +103,8 @@ func (eaot entryAddOptionTester) assertEntryOptionsRepeated() func(*testing.T) {
 		if len(got) != 3 {
 			t.Fatalf("%d options returned but wanted 3", len(got))
 		}
-		got0Aliases := got[0].Aliases()
-		iOptionAliases := eaot.iOption.Aliases()
+		got0Aliases := got[0].Aliases
+		iOptionAliases := eaot.iOption.Aliases
 		if len(got0Aliases) != len(iOptionAliases) {
 			t.Fatalf(
 				"%d option aliases returned but wanted %d",
@@ -162,20 +162,20 @@ func (eaot entryAddOptionTester) assertErrorNoOptionProvided() func(*testing.T) 
 type newEntryTester struct {
 	iName        string
 	iDescription string
-	oEntry       Entry
+	oEntry       *Entry
 	oErr         error
 }
 
 func (net newEntryTester) assertEntry() func(*testing.T) {
 	return func(t *testing.T) {
 		got, _ := NewEntry(net.iName, net.iDescription)
-		gotName := got.Name()
-		oEntryName := net.oEntry.Name()
+		gotName := got.Name
+		oEntryName := net.oEntry.Name
 		if gotName != oEntryName {
 			t.Errorf("name is %q but should be %q", gotName, oEntryName)
 		}
-		gotDescription := got.Description()
-		oEntryDescription := net.oEntry.Description()
+		gotDescription := got.Description
+		oEntryDescription := net.oEntry.Description
 		if gotDescription != oEntryDescription {
 			t.Errorf("description is %q but should be %q", gotDescription, oEntryDescription)
 		}

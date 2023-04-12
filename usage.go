@@ -7,16 +7,6 @@ import (
 	"strings"
 )
 
-type argCollector interface {
-	Args() []string
-	AddArg(string) error
-}
-
-type optionCollector interface {
-	Options() []Option
-	AddOption(Option) error
-}
-
 type Usage struct {
 	Name    string
 	entries map[string]Entry
@@ -30,38 +20,38 @@ func (u Usage) Entries() []Entry {
 		output = append(output, v)
 	}
 	sort.Slice(output, func(i, j int) bool {
-		return output[i].Name() < output[j].Name()
+		return output[i].Name < output[j].Name
 	})
 	return output
 }
 
-func (u *Usage) AddEntry(e Entry) error {
+func (u *Usage) AddEntry(e *Entry) error {
 	if e == nil {
 		return nilEntryProvidedErr()
 	}
-	if e.Name() == "" {
+	if e.Name == "" {
 		return emptyEntryNameStringErr()
 	}
 	if len(u.args) > 0 {
 		return existingArgsErr()
 	}
-	u.entries[e.Name()] = e
+	u.entries[e.Name] = *e
 	return nil
 }
 
-func (u *Usage) AddOption(o Option) error {
+func (u *Usage) AddOption(o *Option) error {
 	if o == nil {
 		return nilOptionProvidedErr()
 	}
-	if len(o.Aliases()) == 0 {
+	if len(o.Aliases) == 0 {
 		return noOptionAliasProvidedErr()
 	}
-	for _, alias := range o.Aliases() {
+	for _, alias := range o.Aliases {
 		if len(alias) == 0 {
 			return emptyOptionAliasStringErr()
 		}
 	}
-	u.options = append(u.options, o)
+	u.options = append(u.options, *o)
 	return nil
 }
 
@@ -120,9 +110,9 @@ func (u Usage) Global() string {
 		}
 		args := b.String()
 
-		entrySummary := fmt.Sprintf("\n    %s%s", e.Name(), args)
+		entrySummary := fmt.Sprintf("\n    %s%s", e.Name, args)
 		usage.WriteString(entrySummary)
-		for _, line := range chopMultipleParagraphs(e.Description(), 64) {
+		for _, line := range chopMultipleParagraphs(e.Description, 64) {
 			usage.WriteString("\n        " + line)
 		}
 		usage.WriteString("\n")

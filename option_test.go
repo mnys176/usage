@@ -61,27 +61,23 @@ func (oaat optionAddArgTester) assertErrorEmptyArgString() func(*testing.T) {
 type newOptionTester struct {
 	iAliases     []string
 	iDescription string
-	oOption      Option
+	oOption      *Option
 	oErr         error
 }
 
 func (not newOptionTester) assertOption() func(*testing.T) {
 	return func(t *testing.T) {
 		got, _ := NewOption(not.iAliases, not.iDescription)
-		gotAliases := got.Aliases()
-		oOptionAliases := not.oOption.Aliases()
-		if len(gotAliases) != len(oOptionAliases) {
-			t.Fatalf("%d aliases returned but wanted %d", len(gotAliases), len(oOptionAliases))
+		if len(got.Aliases) != len(not.oOption.Aliases) {
+			t.Fatalf("%d aliases returned but wanted %d", len(got.Aliases), len(not.oOption.Aliases))
 		}
-		for i := range gotAliases {
-			if gotAliases[i] != oOptionAliases[i] {
-				t.Errorf("alias is %q but should be %q", gotAliases[i], oOptionAliases[i])
+		for i := range got.Aliases {
+			if got.Aliases[i] != not.oOption.Aliases[i] {
+				t.Errorf("alias is %q but should be %q", got.Aliases[i], not.oOption.Aliases[i])
 			}
 		}
-		gotDescription := got.Description()
-		oOptionDescription := not.oOption.Description()
-		if gotDescription != oOptionDescription {
-			t.Errorf("description is %q but should be %q", gotDescription, oOptionDescription)
+		if got.Description != not.oOption.Description {
+			t.Errorf("description is %q but should be %q", got.Description, not.oOption.Description)
 		}
 		gotArgs := got.Args()
 		oOptionArgs := not.oOption.Args()

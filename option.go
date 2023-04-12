@@ -1,30 +1,16 @@
 package usage
 
-type Option interface {
-	argCollector
-	Aliases() []string
-	Description() string
-}
-
-type defaultOption struct {
-	aliases     []string
-	description string
+type Option struct {
+	Aliases     []string
+	Description string
 	args        []string
 }
 
-func (o defaultOption) Aliases() []string {
-	return o.aliases
-}
-
-func (o defaultOption) Description() string {
-	return o.description
-}
-
-func (o defaultOption) Args() []string {
+func (o Option) Args() []string {
 	return o.args
 }
 
-func (o *defaultOption) AddArg(arg string) error {
+func (o *Option) AddArg(arg string) error {
 	if len(arg) == 0 {
 		return emptyArgStringErr()
 	}
@@ -32,7 +18,7 @@ func (o *defaultOption) AddArg(arg string) error {
 	return nil
 }
 
-func NewOption(aliases []string, description string) (Option, error) {
+func NewOption(aliases []string, description string) (*Option, error) {
 	if len(aliases) == 0 {
 		return nil, noOptionAliasProvidedErr()
 	}
@@ -42,9 +28,9 @@ func NewOption(aliases []string, description string) (Option, error) {
 		}
 	}
 
-	return &defaultOption{
-		aliases:     aliases,
-		description: description,
+	return &Option{
+		Aliases:     aliases,
+		Description: description,
 		args:        make([]string, 0),
 	}, nil
 }

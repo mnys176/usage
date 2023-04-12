@@ -1,32 +1,17 @@
 package usage
 
-type Entry interface {
-	argCollector
-	optionCollector
-	Name() string
-	Description() string
-}
-
-type defaultEntry struct {
-	name        string
-	description string
+type Entry struct {
+	Name        string
+	Description string
 	args        []string
 	options     []Option
 }
 
-func (e defaultEntry) Name() string {
-	return e.name
-}
-
-func (e defaultEntry) Description() string {
-	return e.description
-}
-
-func (e defaultEntry) Args() []string {
+func (e Entry) Args() []string {
 	return e.args
 }
 
-func (e *defaultEntry) AddArg(arg string) error {
+func (e *Entry) AddArg(arg string) error {
 	if len(arg) == 0 {
 		return emptyArgStringErr()
 	}
@@ -34,34 +19,34 @@ func (e *defaultEntry) AddArg(arg string) error {
 	return nil
 }
 
-func (e defaultEntry) Options() []Option {
+func (e Entry) Options() []Option {
 	return e.options
 }
 
-func (e *defaultEntry) AddOption(o Option) error {
+func (e *Entry) AddOption(o *Option) error {
 	if o == nil {
 		return nilOptionProvidedErr()
 	}
-	if len(o.Aliases()) == 0 {
+	if len(o.Aliases) == 0 {
 		return noOptionAliasProvidedErr()
 	}
-	for _, alias := range o.Aliases() {
+	for _, alias := range o.Aliases {
 		if len(alias) == 0 {
 			return emptyOptionAliasStringErr()
 		}
 	}
 
-	e.options = append(e.options, o)
+	e.options = append(e.options, *o)
 	return nil
 }
 
-func NewEntry(name, description string) (Entry, error) {
+func NewEntry(name, description string) (*Entry, error) {
 	if name == "" {
 		return nil, emptyEntryNameStringErr()
 	}
-	return &defaultEntry{
-		name:        name,
-		description: description,
+	return &Entry{
+		Name:        name,
+		Description: description,
 		args:        make([]string, 0),
 		options:     make([]Option, 0),
 	}, nil

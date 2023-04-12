@@ -16,17 +16,17 @@ func (eaat entryAddArgTester) assertEntryArgs() func(*testing.T) {
 		if err := entry.AddArg(eaat.iArg); err != nil {
 			t.Errorf("got %q error but should be nil", err)
 		}
-		entryArgs := entry.Args()
-		if len(entryArgs) != 1 {
-			t.Fatalf("%d args returned but wanted 1", len(entryArgs))
+		got := entry.Args()
+		if len(got) != 1 {
+			t.Fatalf("%d args returned but wanted 1", len(got))
 		}
-		if entryArgs[0] != eaat.iArg {
-			t.Errorf("arg is %q but should be %q", entryArgs[0], eaat.iArg)
+		if got[0] != eaat.iArg {
+			t.Errorf("arg is %q but should be %q", got[0], eaat.iArg)
 		}
 	}
 }
 
-func (eaat entryAddArgTester) assertRepeatedEntryArgs() func(*testing.T) {
+func (eaat entryAddArgTester) assertEntryArgsRepeated() func(*testing.T) {
 	return func(t *testing.T) {
 		entry := makeEntry("foo", "foo")
 		err1 := entry.AddArg(eaat.iArg)
@@ -35,25 +35,25 @@ func (eaat entryAddArgTester) assertRepeatedEntryArgs() func(*testing.T) {
 		if err := errors.Join(err1, err2, err3); err != nil {
 			t.Errorf("got %q error but should be nil", err)
 		}
-		entryArgs := entry.Args()
-		if len(entryArgs) != 3 {
-			t.Fatalf("%d args returned but wanted 3", len(entryArgs))
+		got := entry.Args()
+		if len(got) != 3 {
+			t.Fatalf("%d args returned but wanted 3", len(got))
 		}
-		if entryArgs[0] != eaat.iArg {
-			t.Errorf("arg is %q but should be %q", entryArgs[0], eaat.iArg)
+		if got[0] != eaat.iArg {
+			t.Errorf("arg is %q but should be %q", got[0], eaat.iArg)
 		}
 	}
 }
 
-func (eaat entryAddArgTester) assertEmptyArgStringError() func(*testing.T) {
+func (eaat entryAddArgTester) assertErrEmptyArgString() func(*testing.T) {
 	return func(t *testing.T) {
 		entry := makeEntry("foo", "foo")
-		err := entry.AddArg(eaat.iArg)
-		if err == nil {
+		got := entry.AddArg(eaat.iArg)
+		if got == nil {
 			t.Fatal("no error returned with an empty arg string")
 		}
-		if !errors.Is(err, eaat.oErr) {
-			t.Errorf("got %q error but wanted %q", err, eaat.oErr)
+		if !errors.Is(got, eaat.oErr) {
+			t.Errorf("got %q error but wanted %q", got, eaat.oErr)
 		}
 	}
 }
@@ -69,20 +69,20 @@ func (eaot entryAddOptionTester) assertEntryOptions() func(*testing.T) {
 		if err := entry.AddOption(eaot.iOption); err != nil {
 			t.Errorf("got %q error but should be nil", err)
 		}
-		entryOptions := entry.Options()
-		if len(entryOptions) != 1 {
-			t.Fatalf("%d options returned but wanted 1", len(entryOptions))
+		got := entry.Options()
+		if len(got) != 1 {
+			t.Fatalf("%d options returned but wanted 1", len(got))
 		}
-		errorOption0Aliases := entryOptions[0].Aliases()
+		got0Aliases := got[0].Aliases()
 		iOptionAliases := eaot.iOption.Aliases()
-		if len(errorOption0Aliases) != len(iOptionAliases) {
+		if len(got0Aliases) != len(iOptionAliases) {
 			t.Fatalf(
 				"%d option aliases returned but wanted %d",
-				len(errorOption0Aliases),
+				len(got0Aliases),
 				len(iOptionAliases),
 			)
 		}
-		for i, alias := range errorOption0Aliases {
+		for i, alias := range got0Aliases {
 			if alias != iOptionAliases[i] {
 				t.Errorf("option alias is %q but should be %q", alias, iOptionAliases[i])
 			}
@@ -90,7 +90,7 @@ func (eaot entryAddOptionTester) assertEntryOptions() func(*testing.T) {
 	}
 }
 
-func (eaot entryAddOptionTester) assertRepeatedEntryOptions() func(*testing.T) {
+func (eaot entryAddOptionTester) assertEntryOptionsRepeated() func(*testing.T) {
 	return func(t *testing.T) {
 		entry := makeEntry("foo", "foo")
 		err1 := entry.AddOption(eaot.iOption)
@@ -99,20 +99,20 @@ func (eaot entryAddOptionTester) assertRepeatedEntryOptions() func(*testing.T) {
 		if err := errors.Join(err1, err2, err3); err != nil {
 			t.Errorf("got %q error but should be nil", err)
 		}
-		entryOptions := entry.Options()
-		if len(entryOptions) != 3 {
-			t.Fatalf("%d options returned but wanted 3", len(entryOptions))
+		got := entry.Options()
+		if len(got) != 3 {
+			t.Fatalf("%d options returned but wanted 3", len(got))
 		}
-		entryOptionAliases := entryOptions[0].Aliases()
+		got0Aliases := got[0].Aliases()
 		iOptionAliases := eaot.iOption.Aliases()
-		if len(entryOptions[0].Aliases()) != len(iOptionAliases) {
+		if len(got0Aliases) != len(iOptionAliases) {
 			t.Fatalf(
 				"%d option aliases returned but wanted %d",
-				len(entryOptionAliases),
+				len(got0Aliases),
 				len(iOptionAliases),
 			)
 		}
-		for i, alias := range entryOptionAliases {
+		for i, alias := range got0Aliases {
 			if alias != iOptionAliases[i] {
 				t.Errorf("option alias is %q but should be %q", alias, iOptionAliases[i])
 			}
@@ -120,41 +120,41 @@ func (eaot entryAddOptionTester) assertRepeatedEntryOptions() func(*testing.T) {
 	}
 }
 
-func (eaot entryAddOptionTester) assertEmptyOptionAliasStringError() func(*testing.T) {
+func (eaot entryAddOptionTester) assertErrorEmptyOptionAliasString() func(*testing.T) {
 	return func(t *testing.T) {
 		entry := makeEntry("foo", "foo")
-		err := entry.AddOption(eaot.iOption)
-		if err == nil {
+		got := entry.AddOption(eaot.iOption)
+		if got == nil {
 			t.Fatal("no error returned with an empty alias string")
 		}
-		if !errors.Is(err, eaot.oErr) {
-			t.Errorf("got %q error but wanted %q", err, eaot.oErr)
+		if !errors.Is(got, eaot.oErr) {
+			t.Errorf("got %q error but wanted %q", got, eaot.oErr)
 		}
 	}
 }
 
-func (eaot entryAddOptionTester) assertNoOptionAliasProvidedError() func(*testing.T) {
+func (eaot entryAddOptionTester) assertErrorNoOptionAliasProvided() func(*testing.T) {
 	return func(t *testing.T) {
 		entry := makeEntry("foo", "foo")
-		err := entry.AddOption(eaot.iOption)
-		if err == nil {
+		got := entry.AddOption(eaot.iOption)
+		if got == nil {
 			t.Fatal("no error returned with no provided aliases")
 		}
-		if !errors.Is(err, eaot.oErr) {
-			t.Errorf("got %q error but wanted %q", err, eaot.oErr)
+		if !errors.Is(got, eaot.oErr) {
+			t.Errorf("got %q error but wanted %q", got, eaot.oErr)
 		}
 	}
 }
 
-func (eaot entryAddOptionTester) assertNoOptionProvidedError() func(*testing.T) {
+func (eaot entryAddOptionTester) assertErrorNoOptionProvided() func(*testing.T) {
 	return func(t *testing.T) {
 		entry := makeEntry("foo", "foo")
-		err := entry.AddOption(eaot.iOption)
-		if err == nil {
+		got := entry.AddOption(eaot.iOption)
+		if got == nil {
 			t.Fatal("no error returned with nil option")
 		}
-		if !errors.Is(err, eaot.oErr) {
-			t.Errorf("got %q error but wanted %q", err, eaot.oErr)
+		if !errors.Is(got, eaot.oErr) {
+			t.Errorf("got %q error but wanted %q", got, eaot.oErr)
 		}
 	}
 }
@@ -168,36 +168,36 @@ type newEntryTester struct {
 
 func (net newEntryTester) assertEntry() func(*testing.T) {
 	return func(t *testing.T) {
-		entry, _ := NewEntry(net.iName, net.iDescription)
-		entryName := entry.Name()
+		got, _ := NewEntry(net.iName, net.iDescription)
+		gotName := got.Name()
 		oEntryName := net.oEntry.Name()
-		if entryName != oEntryName {
-			t.Errorf("name is %q but should be %q", entryName, oEntryName)
+		if gotName != oEntryName {
+			t.Errorf("name is %q but should be %q", gotName, oEntryName)
 		}
-		entryDescription := entry.Description()
+		gotDescription := got.Description()
 		oEntryDescription := net.oEntry.Description()
-		if entryDescription != oEntryDescription {
-			t.Errorf("description is %q but should be %q", entryDescription, oEntryDescription)
+		if gotDescription != oEntryDescription {
+			t.Errorf("description is %q but should be %q", gotDescription, oEntryDescription)
 		}
-		entryArgs := entry.Args()
-		if entryArgs == nil || len(entryArgs) != 0 {
+		gotArgs := got.Args()
+		if gotArgs == nil || len(gotArgs) != 0 {
 			t.Error("args not initialized to an empty slice")
 		}
-		entryOptions := entry.Options()
-		if entryOptions == nil || len(entryOptions) != 0 {
+		gotOptions := got.Options()
+		if gotOptions == nil || len(gotOptions) != 0 {
 			t.Error("options not initialized to an empty slice")
 		}
 	}
 }
 
-func (net newEntryTester) assertEmptyNameStringError() func(*testing.T) {
+func (net newEntryTester) assertErrorEmptyNameString() func(*testing.T) {
 	return func(t *testing.T) {
-		_, err := NewEntry(net.iName, net.iDescription)
-		if err == nil {
+		_, got := NewEntry(net.iName, net.iDescription)
+		if got == nil {
 			t.Fatal("no error returned with an empty name string")
 		}
-		if !errors.Is(err, net.oErr) {
-			t.Errorf("got %q error but wanted %q", err, net.oErr)
+		if !errors.Is(got, net.oErr) {
+			t.Errorf("got %q error but wanted %q", got, net.oErr)
 		}
 	}
 }
@@ -208,10 +208,10 @@ func TestEntryAddArg(t *testing.T) {
 	}.assertEntryArgs())
 	t.Run("repeated arg strings", entryAddArgTester{
 		iArg: "foo",
-	}.assertRepeatedEntryArgs())
+	}.assertEntryArgsRepeated())
 	t.Run("empty arg string", entryAddArgTester{
 		oErr: makeError("usage: arg string must not be empty"),
-	}.assertEmptyArgStringError())
+	}.assertErrEmptyArgString())
 }
 
 func TestEntryAddOption(t *testing.T) {
@@ -220,26 +220,26 @@ func TestEntryAddOption(t *testing.T) {
 	}.assertEntryOptions())
 	t.Run("repeated options", entryAddOptionTester{
 		iOption: makeOption([]string{"foo", "bar"}, "foo"),
-	}.assertRepeatedEntryOptions())
+	}.assertEntryOptionsRepeated())
 	t.Run("nil option", entryAddOptionTester{
 		oErr: makeError("usage: no option provided"),
-	}.assertNoOptionProvidedError())
+	}.assertErrorNoOptionProvided())
 	t.Run("nil option aliases", entryAddOptionTester{
 		iOption: makeOption(nil, "foo"),
 		oErr:    makeError("usage: option must have at least one alias"),
-	}.assertNoOptionAliasProvidedError())
+	}.assertErrorNoOptionAliasProvided())
 	t.Run("no option aliases", entryAddOptionTester{
 		iOption: makeOption(make([]string, 0), "foo"),
 		oErr:    makeError("usage: option must have at least one alias"),
-	}.assertNoOptionAliasProvidedError())
+	}.assertErrorNoOptionAliasProvided())
 	t.Run("single empty option alias string", entryAddOptionTester{
 		iOption: makeOption([]string{""}, "foo"),
 		oErr:    makeError("usage: alias string must not be empty"),
-	}.assertEmptyOptionAliasStringError())
+	}.assertErrorEmptyOptionAliasString())
 	t.Run("multiple empty option alias strings", entryAddOptionTester{
 		iOption: makeOption([]string{"foo", "", "bar", ""}, "foo"),
 		oErr:    makeError("usage: alias string must not be empty"),
-	}.assertEmptyOptionAliasStringError())
+	}.assertErrorEmptyOptionAliasString())
 }
 
 func TestNewEntry(t *testing.T) {
@@ -255,5 +255,5 @@ func TestNewEntry(t *testing.T) {
 	t.Run("empty name string", newEntryTester{
 		iDescription: "foo",
 		oErr:         makeError("usage: name string must not be empty"),
-	}.assertEmptyNameStringError())
+	}.assertErrorEmptyNameString())
 }

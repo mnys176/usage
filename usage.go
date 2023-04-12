@@ -25,6 +25,14 @@ func (u Usage) Entries() []Entry {
 	return output
 }
 
+func (u Usage) Options() []Option {
+	return u.options
+}
+
+func (u Usage) Args() []string {
+	return u.args
+}
+
 func (u *Usage) AddEntry(e *Entry) error {
 	if e == nil {
 		return nilEntryProvidedErr()

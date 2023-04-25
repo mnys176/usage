@@ -5,22 +5,23 @@ import (
 	"fmt"
 )
 
-type UsageError struct {
+type usageError struct {
 	Context string
 	Err     error
 }
 
-func (e UsageError) Error() string {
+func (e usageError) Error() string {
 	return fmt.Sprintf("%s: %v", e.Context, e.Err)
 }
 
-func (e UsageError) Is(target error) bool {
+func (e usageError) Is(target error) bool {
 	return e.Error() == target.Error()
 }
 
-func newUsageError() (e UsageError) {
+func newUsageError() *usageError {
+	e := &usageError{}
 	e.Context = "usage"
-	return
+	return e
 }
 
 func nilEntryProvidedErr() error {

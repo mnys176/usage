@@ -36,19 +36,19 @@ func nilOptionProvidedErr() error {
 	return e
 }
 
-func noOptionAliasProvidedErr() error {
+func noAliasProvidedErr() error {
 	e := newUsageError()
 	e.Err = errors.New("option must have at least one alias")
 	return e
 }
 
-func emptyEntryNameStringErr() error {
+func emptyNameStringErr() error {
 	e := newUsageError()
 	e.Err = errors.New("name string must not be empty")
 	return e
 }
 
-func emptyOptionAliasStringErr() error {
+func emptyAliasStringErr() error {
 	e := newUsageError()
 	e.Err = errors.New("alias string must not be empty")
 	return e

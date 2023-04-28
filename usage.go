@@ -7,15 +7,23 @@ import (
 	"strings"
 )
 
-type Usage struct {
+type usage struct {
 	Name    string
-	entries map[string]Entry
-	options []Option
+	entries map[string]entry
+	options []option
 	args    []string
 }
 
-func (u Usage) Entries() []Entry {
-	output := make([]Entry, 0)
+func (u usage) Args() []string {
+	return u.args
+}
+
+func (u usage) Options() []option {
+	return u.options
+}
+
+func (u usage) Entries() []entry {
+	output := make([]entry, 0)
 	for _, v := range u.entries {
 		output = append(output, v)
 	}
@@ -25,45 +33,7 @@ func (u Usage) Entries() []Entry {
 	return output
 }
 
-func (u Usage) Options() []Option {
-	return u.options
-}
-
-func (u Usage) Args() []string {
-	return u.args
-}
-
-func (u *Usage) AddEntry(e *Entry) error {
-	if e == nil {
-		return nilEntryProvidedErr()
-	}
-	if e.Name == "" {
-		return emptyEntryNameStringErr()
-	}
-	if len(u.args) > 0 {
-		return existingArgsErr()
-	}
-	u.entries[e.Name] = *e
-	return nil
-}
-
-func (u *Usage) AddOption(o *Option) error {
-	if o == nil {
-		return nilOptionProvidedErr()
-	}
-	if len(o.Aliases) == 0 {
-		return noOptionAliasProvidedErr()
-	}
-	for _, alias := range o.Aliases {
-		if len(alias) == 0 {
-			return emptyOptionAliasStringErr()
-		}
-	}
-	u.options = append(u.options, *o)
-	return nil
-}
-
-func (u *Usage) AddArg(arg string) error {
+func (u *usage) AddArg(arg string) error {
 	if len(arg) == 0 {
 		return emptyArgStringErr()
 	}
@@ -74,7 +44,26 @@ func (u *Usage) AddArg(arg string) error {
 	return nil
 }
 
-func (u Usage) Global() string {
+func (u *usage) AddOption(o *option) error {
+	if o == nil {
+		return nilOptionProvidedErr()
+	}
+	u.options = append(u.options, *o)
+	return nil
+}
+
+func (u *usage) AddEntry(e *entry) error {
+	if e == nil {
+		return nilEntryProvidedErr()
+	}
+	if len(u.args) > 0 {
+		return existingArgsErr()
+	}
+	u.entries[e.Name] = *e
+	return nil
+}
+
+func (u usage) Global() string {
 	var summary, summaryExt strings.Builder
 	summary.WriteString(u.Name)
 	summaryExt.WriteString("\n\nTo learn more about the available options" +
@@ -128,15 +117,15 @@ func (u Usage) Global() string {
 	return usage.String()
 }
 
-func (u Usage) Lookup(entry string) string {
+func (u usage) Lookup(entry string) string {
 	return "lookup: " + entry
 }
 
-func NewUsage(name string) *Usage {
-	return &Usage{
+func NewUsage(name string) *usage {
+	return &usage{
 		Name:    name,
-		entries: make(map[string]Entry),
-		options: make([]Option, 0),
+		entries: make(map[string]entry),
+		options: make([]option, 0),
 	}
 }
 

@@ -1,17 +1,21 @@
 package usage
 
-type Entry struct {
+type entry struct {
 	Name        string
 	Description string
 	args        []string
-	options     []Option
+	options     []option
 }
 
-func (e Entry) Args() []string {
+func (e entry) Args() []string {
 	return e.args
 }
 
-func (e *Entry) AddArg(arg string) error {
+func (e entry) Options() []option {
+	return e.options
+}
+
+func (e *entry) AddArg(arg string) error {
 	if len(arg) == 0 {
 		return emptyArgStringErr()
 	}
@@ -19,35 +23,22 @@ func (e *Entry) AddArg(arg string) error {
 	return nil
 }
 
-func (e Entry) Options() []Option {
-	return e.options
-}
-
-func (e *Entry) AddOption(o *Option) error {
+func (e *entry) AddOption(o *option) error {
 	if o == nil {
 		return nilOptionProvidedErr()
 	}
-	if len(o.Aliases) == 0 {
-		return noOptionAliasProvidedErr()
-	}
-	for _, alias := range o.Aliases {
-		if len(alias) == 0 {
-			return emptyOptionAliasStringErr()
-		}
-	}
-
 	e.options = append(e.options, *o)
 	return nil
 }
 
-func NewEntry(name, description string) (*Entry, error) {
+func NewEntry(name, description string) (*entry, error) {
 	if name == "" {
-		return nil, emptyEntryNameStringErr()
+		return nil, emptyNameStringErr()
 	}
-	return &Entry{
+	return &entry{
 		Name:        name,
 		Description: description,
 		args:        make([]string, 0),
-		options:     make([]Option, 0),
+		options:     make([]option, 0),
 	}, nil
 }

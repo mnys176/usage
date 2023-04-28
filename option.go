@@ -1,16 +1,16 @@
 package usage
 
-type Option struct {
+type option struct {
 	Aliases     []string
 	Description string
 	args        []string
 }
 
-func (o Option) Args() []string {
+func (o option) Args() []string {
 	return o.args
 }
 
-func (o *Option) AddArg(arg string) error {
+func (o *option) AddArg(arg string) error {
 	if len(arg) == 0 {
 		return emptyArgStringErr()
 	}
@@ -18,17 +18,17 @@ func (o *Option) AddArg(arg string) error {
 	return nil
 }
 
-func NewOption(aliases []string, description string) (*Option, error) {
+func NewOption(aliases []string, description string) (*option, error) {
 	if len(aliases) == 0 {
-		return nil, noOptionAliasProvidedErr()
+		return nil, noAliasProvidedErr()
 	}
 	for _, alias := range aliases {
 		if len(alias) == 0 {
-			return nil, emptyOptionAliasStringErr()
+			return nil, emptyAliasStringErr()
 		}
 	}
 
-	return &Option{
+	return &option{
 		Aliases:     aliases,
 		Description: description,
 		args:        make([]string, 0),

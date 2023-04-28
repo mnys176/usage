@@ -13,8 +13,8 @@ func assertError(t *testing.T, got, want error) {
 }
 
 func assertEntryStruct(t *testing.T, got, want *entry) {
-	if got.Name != want.Name {
-		t.Errorf("name is %q but should be %q", got.Name, want.Name)
+	if got.name != want.name {
+		t.Errorf("name is %q but should be %q", got.name, want.name)
 	}
 	if got.Description != want.Description {
 		t.Errorf("description is %q but should be %q", got.Description, want.Description)
@@ -63,11 +63,11 @@ type usageEntriesTester struct {
 func (tester usageEntriesTester) assertUsageEntries() func(*testing.T) {
 	return func(t *testing.T) {
 		sort.Slice(tester.oEntries, func(i, j int) bool {
-			return tester.oEntries[i].Name < tester.oEntries[j].Name
+			return tester.oEntries[i].name < tester.oEntries[j].name
 		})
 		sampleUsage := usage{entries: make(map[string]entry)}
 		for _, sampleEntry := range tester.oEntries {
-			sampleUsage.entries[sampleEntry.Name] = sampleEntry
+			sampleUsage.entries[sampleEntry.name] = sampleEntry
 		}
 		got := sampleUsage.Entries()
 		assertEntrySlice(t, got, tester.oEntries)
@@ -110,7 +110,7 @@ func (tester usageAddArgTester) assertErrExistingEntries() func(*testing.T) {
 		sampleUsage := usage{
 			entries: map[string]entry{
 				"foo": {
-					Name:        "foo",
+					name:        "foo",
 					Description: "foo",
 					options: []option{{
 						Aliases:     []string{"foo"},
@@ -178,7 +178,7 @@ func (tester usageAddEntryTester) assertUsageEntries() func(*testing.T) {
 			sampleEntries = append(sampleEntries, sampleEntry)
 		}
 		sort.Slice(sampleEntries, func(i, j int) bool {
-			return sampleEntries[i].Name < sampleEntries[j].Name
+			return sampleEntries[i].name < sampleEntries[j].name
 		})
 		assertEntrySlice(t, sampleEntries, []entry{*tester.iEntry})
 	}
@@ -324,7 +324,7 @@ func TestUsageOptions(t *testing.T) {
 func TestUsageEntries(t *testing.T) {
 	t.Run("baseline", usageEntriesTester{
 		oEntries: []entry{{
-			Name:        "foo",
+			name:        "foo",
 			Description: "foo",
 			options: []option{{
 				Aliases:     []string{"foo"},
@@ -337,7 +337,7 @@ func TestUsageEntries(t *testing.T) {
 	t.Run("multiple entries", usageEntriesTester{
 		oEntries: []entry{
 			{
-				Name:        "foo",
+				name:        "foo",
 				Description: "foo",
 				options: []option{{
 					Aliases:     []string{"foo"},
@@ -347,7 +347,7 @@ func TestUsageEntries(t *testing.T) {
 				args: []string{"foo"},
 			},
 			{
-				Name:        "bar",
+				name:        "bar",
 				Description: "bar",
 				options: []option{{
 					Aliases:     []string{"bar"},
@@ -357,7 +357,7 @@ func TestUsageEntries(t *testing.T) {
 				args: []string{"bar"},
 			},
 			{
-				Name:        "baz",
+				name:        "baz",
 				Description: "baz",
 				options: []option{{
 					Aliases:     []string{"baz"},
@@ -402,7 +402,7 @@ func TestUsageAddOption(t *testing.T) {
 func TestUsageAddEntry(t *testing.T) {
 	t.Run("baseline", usageAddEntryTester{
 		iEntry: &entry{
-			Name:        "foo",
+			name:        "foo",
 			Description: "foo",
 			options: []option{{
 				Aliases:     []string{"foo"},
@@ -414,7 +414,7 @@ func TestUsageAddEntry(t *testing.T) {
 	}.assertUsageEntries())
 	t.Run("existing args", usageAddEntryTester{
 		iEntry: &entry{
-			Name:        "foo",
+			name:        "foo",
 			Description: "foo",
 			options: []option{{
 				Aliases:     []string{"foo"},

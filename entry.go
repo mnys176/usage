@@ -1,8 +1,8 @@
 package usage
 
 type entry struct {
-	Name        string
 	Description string
+	name        string
 	args        []string
 	options     []option
 }
@@ -31,12 +31,20 @@ func (e *entry) AddOption(o *option) error {
 	return nil
 }
 
+func (e *entry) SetName(name string) error {
+	if name == "" {
+		return emptyNameStringErr()
+	}
+	e.name = name
+	return nil
+}
+
 func NewEntry(name, description string) (*entry, error) {
 	if name == "" {
 		return nil, emptyNameStringErr()
 	}
 	return &entry{
-		Name:        name,
+		name:        name,
 		Description: description,
 		args:        make([]string, 0),
 		options:     make([]option, 0),

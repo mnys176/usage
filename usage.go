@@ -28,7 +28,7 @@ func (u usage) Entries() []entry {
 		output = append(output, v)
 	}
 	sort.Slice(output, func(i, j int) bool {
-		return output[i].Name < output[j].Name
+		return output[i].name < output[j].name
 	})
 	return output
 }
@@ -59,7 +59,7 @@ func (u *usage) AddEntry(e *entry) error {
 	if len(u.args) > 0 {
 		return existingArgsErr()
 	}
-	u.entries[e.Name] = *e
+	u.entries[e.name] = *e
 	return nil
 }
 
@@ -107,7 +107,7 @@ func (u usage) Global() string {
 		}
 		args := b.String()
 
-		entrySummary := fmt.Sprintf("\n    %s%s", e.Name, args)
+		entrySummary := fmt.Sprintf("\n    %s%s", e.name, args)
 		usage.WriteString(entrySummary)
 		for _, line := range chopMultipleParagraphs(e.Description, 64) {
 			usage.WriteString("\n        " + line)

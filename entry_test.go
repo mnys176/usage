@@ -99,6 +99,34 @@ func (tester entryAddOptionTester) assertErrNoOptionProvided() func(*testing.T) 
 	}
 }
 
+type entrySetNameTester struct {
+	iName string
+	oErr  error
+}
+
+func (tester entrySetNameTester) assertEntryName() func(*testing.T) {
+	return func(t *testing.T) {
+		sampleEntry := entry{name: "bar"}
+		if gotErr := sampleEntry.SetName(tester.iName); gotErr != nil {
+			t.Errorf("got %q error but should be nil", gotErr)
+		}
+		if sampleEntry.name != tester.iName {
+			t.Errorf("name is %q but should be %q", sampleEntry.name, tester.iName)
+		}
+	}
+}
+
+func (tester entrySetNameTester) assertErrEmptyNameString() func(*testing.T) {
+	return func(t *testing.T) {
+		sampleEntry := entry{name: "bar"}
+		got := sampleEntry.SetName(tester.iName)
+		if got == nil {
+			t.Fatal("no error returned with empty name string")
+		}
+		assertError(t, got, tester.oErr)
+	}
+}
+
 type newEntryTester struct {
 	iName        string
 	iDescription string
@@ -112,8 +140,8 @@ func (tester newEntryTester) assertEntry() func(*testing.T) {
 		if gotErr != nil {
 			t.Errorf("got %q error but should be nil", gotErr)
 		}
-		if got.Name != tester.oEntry.Name {
-			t.Errorf("name is %q but should be %q", got.Name, tester.oEntry.Name)
+		if got.name != tester.oEntry.name {
+			t.Errorf("name is %q but should be %q", got.name, tester.oEntry.name)
 		}
 		if got.Description != tester.oEntry.Description {
 			t.Errorf("description is %q but should be %q", got.Description, tester.oEntry.Description)
@@ -210,14 +238,23 @@ func TestNewEntry(t *testing.T) {
 	t.Run("baseline", newEntryTester{
 		iName:        "foo",
 		iDescription: "foo",
-		oEntry:       &entry{Name: "foo", Description: "foo"},
+		oEntry:       &entry{name: "foo", Description: "foo"},
 	}.assertEntry())
 	t.Run("empty description string", newEntryTester{
 		iName:  "foo",
-		oEntry: &entry{Name: "foo"},
+		oEntry: &entry{name: "foo"},
 	}.assertEntry())
 	t.Run("empty name string", newEntryTester{
 		iDescription: "foo",
 		oErr:         emptyNameStringErr(),
+	}.assertErrEmptyNameString())
+}
+
+func TestEntrySetName(t *testing.T) {
+	t.Run("baseline", entrySetNameTester{
+		iName: "foo",
+	}.assertEntryName())
+	t.Run("empty name string", entrySetNameTester{
+		oErr: emptyNameStringErr(),
 	}.assertErrEmptyNameString())
 }

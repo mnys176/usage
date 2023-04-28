@@ -1,8 +1,8 @@
 package usage
 
 type option struct {
-	Aliases     []string
 	Description string
+	aliases     []string
 	args        []string
 }
 
@@ -11,10 +11,23 @@ func (o option) Args() []string {
 }
 
 func (o *option) AddArg(arg string) error {
-	if len(arg) == 0 {
+	if arg == "" {
 		return emptyArgStringErr()
 	}
 	o.args = append(o.args, arg)
+	return nil
+}
+
+func (o *option) SetAliases(aliases []string) error {
+	if len(aliases) == 0 {
+		return noAliasProvidedErr()
+	}
+	for _, alias := range aliases {
+		if len(alias) == 0 {
+			return emptyAliasStringErr()
+		}
+	}
+	o.aliases = aliases
 	return nil
 }
 
@@ -29,7 +42,7 @@ func NewOption(aliases []string, description string) (*option, error) {
 	}
 
 	return &option{
-		Aliases:     aliases,
+		aliases:     aliases,
 		Description: description,
 		args:        make([]string, 0),
 	}, nil

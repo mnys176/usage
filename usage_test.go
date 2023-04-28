@@ -113,7 +113,7 @@ func (tester usageAddArgTester) assertErrExistingEntries() func(*testing.T) {
 					name:        "foo",
 					Description: "foo",
 					options: []option{{
-						Aliases:     []string{"foo"},
+						aliases:     []string{"foo"},
 						Description: "foo",
 						args:        []string{"foo"},
 					}},
@@ -292,7 +292,7 @@ func TestUsageArgs(t *testing.T) {
 func TestUsageOptions(t *testing.T) {
 	t.Run("baseline", usageOptionsTester{
 		oOptions: []option{{
-			Aliases:     []string{"foo"},
+			aliases:     []string{"foo"},
 			Description: "foo",
 			args:        []string{"foo"},
 		}},
@@ -300,17 +300,17 @@ func TestUsageOptions(t *testing.T) {
 	t.Run("multiple options", usageOptionsTester{
 		oOptions: []option{
 			{
-				Aliases:     []string{"foo"},
+				aliases:     []string{"foo"},
 				Description: "foo",
 				args:        []string{"foo"},
 			},
 			{
-				Aliases:     []string{"bar"},
+				aliases:     []string{"bar"},
 				Description: "bar",
 				args:        []string{"bar"},
 			},
 			{
-				Aliases:     []string{"baz"},
+				aliases:     []string{"baz"},
 				Description: "baz",
 				args:        []string{"baz"},
 			},
@@ -327,7 +327,7 @@ func TestUsageEntries(t *testing.T) {
 			name:        "foo",
 			Description: "foo",
 			options: []option{{
-				Aliases:     []string{"foo"},
+				aliases:     []string{"foo"},
 				Description: "foo",
 				args:        []string{"foo"},
 			}},
@@ -340,7 +340,7 @@ func TestUsageEntries(t *testing.T) {
 				name:        "foo",
 				Description: "foo",
 				options: []option{{
-					Aliases:     []string{"foo"},
+					aliases:     []string{"foo"},
 					Description: "foo",
 					args:        []string{"foo"},
 				}},
@@ -350,7 +350,7 @@ func TestUsageEntries(t *testing.T) {
 				name:        "bar",
 				Description: "bar",
 				options: []option{{
-					Aliases:     []string{"bar"},
+					aliases:     []string{"bar"},
 					Description: "bar",
 					args:        []string{"bar"},
 				}},
@@ -360,7 +360,7 @@ func TestUsageEntries(t *testing.T) {
 				name:        "baz",
 				Description: "baz",
 				options: []option{{
-					Aliases:     []string{"baz"},
+					aliases:     []string{"baz"},
 					Description: "baz",
 					args:        []string{"baz"},
 				}},
@@ -389,7 +389,7 @@ func TestUsageAddArg(t *testing.T) {
 func TestUsageAddOption(t *testing.T) {
 	t.Run("baseline", usageAddOptionTester{
 		iOption: &option{
-			Aliases:     []string{"foo"},
+			aliases:     []string{"foo"},
 			Description: "foo",
 			args:        []string{"foo"},
 		},
@@ -405,7 +405,7 @@ func TestUsageAddEntry(t *testing.T) {
 			name:        "foo",
 			Description: "foo",
 			options: []option{{
-				Aliases:     []string{"foo"},
+				aliases:     []string{"foo"},
 				Description: "foo",
 				args:        []string{"foo"},
 			}},
@@ -417,7 +417,7 @@ func TestUsageAddEntry(t *testing.T) {
 			name:        "foo",
 			Description: "foo",
 			options: []option{{
-				Aliases:     []string{"foo"},
+				aliases:     []string{"foo"},
 				Description: "foo",
 				args:        []string{"foo"},
 			}},

@@ -34,7 +34,7 @@ func (u usage) Entries() []entry {
 }
 
 func (u *usage) AddArg(arg string) error {
-	if len(arg) == 0 {
+	if arg == "" {
 		return emptyArgStringErr()
 	}
 	if len(u.entries) > 0 {

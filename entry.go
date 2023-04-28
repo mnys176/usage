@@ -16,7 +16,7 @@ func (e entry) Options() []option {
 }
 
 func (e *entry) AddArg(arg string) error {
-	if len(arg) == 0 {
+	if arg == "" {
 		return emptyArgStringErr()
 	}
 	e.args = append(e.args, arg)

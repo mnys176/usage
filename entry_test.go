@@ -183,7 +183,7 @@ func TestEntryArgs(t *testing.T) {
 func TestEntryOptions(t *testing.T) {
 	t.Run("baseline", entryOptionsTester{
 		oOptions: []option{{
-			Aliases:     []string{"foo"},
+			aliases:     []string{"foo"},
 			Description: "foo",
 			args:        []string{"foo"},
 		}},
@@ -191,17 +191,17 @@ func TestEntryOptions(t *testing.T) {
 	t.Run("multiple options", entryOptionsTester{
 		oOptions: []option{
 			{
-				Aliases:     []string{"foo"},
+				aliases:     []string{"foo"},
 				Description: "foo",
 				args:        []string{"foo"},
 			},
 			{
-				Aliases:     []string{"bar"},
+				aliases:     []string{"bar"},
 				Description: "bar",
 				args:        []string{"bar"},
 			},
 			{
-				Aliases:     []string{"baz"},
+				aliases:     []string{"baz"},
 				Description: "baz",
 				args:        []string{"baz"},
 			},
@@ -224,7 +224,7 @@ func TestEntryAddArg(t *testing.T) {
 func TestEntryAddOption(t *testing.T) {
 	t.Run("baseline", entryAddOptionTester{
 		iOption: &option{
-			Aliases:     []string{"foo"},
+			aliases:     []string{"foo"},
 			Description: "foo",
 			args:        []string{"foo"},
 		},

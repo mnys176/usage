@@ -209,6 +209,74 @@ func (tester usageAddEntryTester) assertErrExistingArgs() func(*testing.T) {
 	}
 }
 
+type usageSetNameTester struct {
+	iName string
+	oErr  error
+}
+
+func (tester usageSetNameTester) assertUsageName() func(*testing.T) {
+	return func(t *testing.T) {
+		sampleUsage := usage{name: "bar"}
+		if gotErr := sampleUsage.SetName(tester.iName); gotErr != nil {
+			t.Errorf("got %q error but should be nil", gotErr)
+		}
+		if sampleUsage.name != tester.iName {
+			t.Errorf("name is %q but should be %q", sampleUsage.name, tester.iName)
+		}
+	}
+}
+
+func (tester usageSetNameTester) assertErrEmptyNameString() func(*testing.T) {
+	return func(t *testing.T) {
+		sampleUsage := usage{name: "bar"}
+		got := sampleUsage.SetName(tester.iName)
+		if got == nil {
+			t.Fatal("no error returned with empty name string")
+		}
+		assertError(t, got, tester.oErr)
+	}
+}
+
+type newUsageTester struct {
+	iName  string
+	oUsage *usage
+	oErr   error
+}
+
+func (tester newUsageTester) assertUsage() func(*testing.T) {
+	return func(t *testing.T) {
+		got, gotErr := NewUsage(tester.iName)
+		if gotErr != nil {
+			t.Errorf("got %q error but should be nil", gotErr)
+		}
+		if got.name != tester.oUsage.name {
+			t.Errorf("name is %q but should be %q", got.name, tester.oUsage.name)
+		}
+		if got.args == nil || len(got.args) != 0 {
+			t.Error("args not initialized to an empty slice")
+		}
+		if got.options == nil || len(got.options) != 0 {
+			t.Error("options not initialized to an empty slice")
+		}
+		if got.entries == nil || len(got.entries) != 0 {
+			t.Error("entries not initialized to an empty map")
+		}
+	}
+}
+
+func (tester newUsageTester) assertErrEmptyNameString() func(*testing.T) {
+	return func(t *testing.T) {
+		gotUsage, got := NewUsage(tester.iName)
+		if gotUsage != nil {
+			t.Errorf("got %+v usage but should be nil", gotUsage)
+		}
+		if got == nil {
+			t.Fatal("no error returned with an empty name string")
+		}
+		assertError(t, got, tester.oErr)
+	}
+}
+
 func TestUsageArgs(t *testing.T) {
 	t.Run("baseline", usageArgsTester{
 		oArgs: []string{"foo"},
@@ -360,4 +428,23 @@ func TestUsageAddEntry(t *testing.T) {
 	t.Run("nil entry", usageAddEntryTester{
 		oErr: nilEntryProvidedErr(),
 	}.assertErrNoEntryProvided())
+}
+
+func TestNewUsage(t *testing.T) {
+	t.Run("baseline", newUsageTester{
+		iName:  "foo",
+		oUsage: &usage{name: "foo"},
+	}.assertUsage())
+	t.Run("empty name string", newUsageTester{
+		oErr: emptyNameStringErr(),
+	}.assertErrEmptyNameString())
+}
+
+func TestUsageSetName(t *testing.T) {
+	t.Run("baseline", usageSetNameTester{
+		iName: "foo",
+	}.assertUsageName())
+	t.Run("empty name string", usageSetNameTester{
+		oErr: emptyNameStringErr(),
+	}.assertErrEmptyNameString())
 }

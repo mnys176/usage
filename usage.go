@@ -8,7 +8,7 @@ import (
 )
 
 type usage struct {
-	Name    string
+	name    string
 	entries map[string]entry
 	options []option
 	args    []string
@@ -65,9 +65,9 @@ func (u *usage) AddEntry(e *entry) error {
 
 func (u usage) Global() string {
 	var summary, summaryExt strings.Builder
-	summary.WriteString(u.Name)
+	summary.WriteString(u.name)
 	summaryExt.WriteString("\n\nTo learn more about the available options" +
-		" for each command, use the --help flag like so:\n\n" + u.Name)
+		" for each command, use the --help flag like so:\n\n" + u.name)
 	if len(u.entries) > 0 {
 		summary.WriteString(" <command>")
 		summaryExt.WriteString(" <command>")
@@ -121,12 +121,24 @@ func (u usage) Lookup(entry string) string {
 	return "lookup: " + entry
 }
 
-func NewUsage(name string) *usage {
+func (u *usage) SetName(name string) error {
+	if name == "" {
+		return emptyNameStringErr()
+	}
+	u.name = name
+	return nil
+}
+
+func NewUsage(name string) (*usage, error) {
+	if name == "" {
+		return nil, emptyNameStringErr()
+	}
 	return &usage{
-		Name:    name,
+		name:    name,
 		entries: make(map[string]entry),
 		options: make([]option, 0),
-	}
+		args:    make([]string, 0),
+	}, nil
 }
 
 func chopSingleParagraph(p string, length int) []string {

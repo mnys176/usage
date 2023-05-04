@@ -1,9 +1,13 @@
 package usage
 
+import (
+	"strings"
+)
+
 type entry struct {
 	Description string
 	name        string
-	args        []string
+	args        argSlice
 	options     []option
 }
 
@@ -37,6 +41,18 @@ func (e *entry) SetName(name string) error {
 	}
 	e.name = name
 	return nil
+}
+
+func (e entry) String() string {
+	var entryBuilder strings.Builder
+	entryBuilder.WriteString(Indent + e.name)
+	if len(e.args) > 0 {
+		entryBuilder.WriteString(" " + e.args.String())
+	}
+	for _, line := range chopMultipleParagraphs(e.Description, 64) {
+		entryBuilder.WriteString("\n" + strings.Repeat(Indent, 2) + line)
+	}
+	return entryBuilder.String()
 }
 
 func NewEntry(name, description string) (*entry, error) {

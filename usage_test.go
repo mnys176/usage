@@ -2,6 +2,7 @@ package usage
 
 import (
 	"errors"
+	"fmt"
 	"sort"
 	"testing"
 )
@@ -373,6 +374,19 @@ func TestUsageEntries(t *testing.T) {
 	}.assertUsageEntries())
 }
 
+type usageGlobalTester struct {
+	oGlobal string
+}
+
+func (tester usageGlobalTester) assertString() func(*testing.T) {
+	return func(t *testing.T) {
+		// summaryStart := strings.Index(tester.oGlobal, "Usage:")
+		// optionsStart := strings.Index(tester.oGlobal, "Options:")
+		// commandsStart := strings.Index(tester.oGlobal, "Commands:")
+		t.Log("\n" + tester.oGlobal)
+	}
+}
+
 func TestUsageAddArg(t *testing.T) {
 	t.Run("baseline", usageAddArgTester{
 		iArg: "foo",
@@ -447,4 +461,789 @@ func TestUsageSetName(t *testing.T) {
 	t.Run("empty name string", usageSetNameTester{
 		oErr: emptyNameStringErr(),
 	}.assertErrEmptyNameString())
+}
+
+func TestUsageGlobal(t *testing.T) {
+	const dblIndent string = Indent + Indent
+	const longDescription string = "some very long description that will definitely push the limits\n" +
+		Indent + Indent + "of the screen size (it is very likely that this will cause the\n" +
+		Indent + Indent + "line break at 64 characters)\n" +
+		Indent + Indent + "\n" +
+		Indent + Indent + "here's another paragraph just in case with a very long word\n" +
+		Indent + Indent + "between these brackets > < that will not appear in the final\n" +
+		Indent + Indent + "output because it is longer than a line"
+
+	const (
+		summaryCommandsString  string = "<command>"
+		summaryOptionsString   string = "[options]"
+		summaryArgsString      string = "<args>"
+		summaryExtensionFormat string = Indent + "To learn more about the available" +
+			" options for each command, use the\n" + Indent + "--help flag" +
+			" like so:\n\n" + Indent + "%s " + summaryCommandsString + " --help"
+
+		arg1, arg2, arg3 string = "<foo>", "<bar>", "<baz>"
+
+		option1SingleAlias     string = "--foo"
+		option2SingleAlias     string = "--bar"
+		option3SingleAlias     string = "--baz"
+		option1MultipleAliases string = "--foo, -f"
+		option2MultipleAliases string = "--bar, -b"
+		option3MultipleAliases string = "--baz, -z"
+
+		command1Name string = "bar"
+		command2Name string = "baz"
+		command3Name string = "foo"
+	)
+
+	var (
+		singleArgString    string = arg1
+		multipleArgsString string = fmt.Sprintf("%s %s %s", arg1, arg2, arg3)
+	)
+
+	var (
+		singleOptionString                                           string = option1SingleAlias
+		singleOptionDescriptionString                                string = fmt.Sprintf("%s\n%ssome description", option1SingleAlias, dblIndent)
+		singleOptionLongDescriptionString                            string = fmt.Sprintf("%s\n%s%s", option1SingleAlias, dblIndent, longDescription)
+		singleOptionSingleArgString                                  string = fmt.Sprintf("%s %s", option1SingleAlias, singleArgString)
+		singleOptionSingleArgDescriptionString                       string = fmt.Sprintf("%s %s\n%ssome description", option1SingleAlias, singleArgString, dblIndent)
+		singleOptionSingleArgLongDescriptionString                   string = fmt.Sprintf("%s %s\n%s%s", option1SingleAlias, singleArgString, dblIndent, longDescription)
+		singleOptionMultipleArgsString                               string = fmt.Sprintf("%s %s", option1SingleAlias, multipleArgsString)
+		singleOptionMultipleArgsDescriptionString                    string = fmt.Sprintf("%s %s\n%ssome description", option1SingleAlias, multipleArgsString, dblIndent)
+		singleOptionMultipleArgsLongDescriptionString                string = fmt.Sprintf("%s %s\n%s%s", option1SingleAlias, multipleArgsString, dblIndent, longDescription)
+		singleOptionMultipleAliasesString                            string = option1MultipleAliases
+		singleOptionMultipleAliasesDescriptionString                 string = fmt.Sprintf("%s\n%ssome description", option1MultipleAliases, dblIndent)
+		singleOptionMultipleAliasesLongDescriptionString             string = fmt.Sprintf("%s\n%s%s", option1MultipleAliases, dblIndent, longDescription)
+		singleOptionMultipleAliasesSingleArgString                   string = fmt.Sprintf("%s %s", option1MultipleAliases, singleArgString)
+		singleOptionMultipleAliasesSingleArgDescriptionString        string = fmt.Sprintf("%s %s\n%ssome description", option1MultipleAliases, singleArgString, dblIndent)
+		singleOptionMultipleAliasesSingleArgLongDescriptionString    string = fmt.Sprintf("%s %s\n%s%s", option1MultipleAliases, singleArgString, dblIndent, longDescription)
+		singleOptionMultipleAliasesMultipleArgsString                string = fmt.Sprintf("%s %s", option1MultipleAliases, multipleArgsString)
+		singleOptionMultipleAliasesMultipleArgsDescriptionString     string = fmt.Sprintf("%s %s\n%ssome description", option1MultipleAliases, multipleArgsString, dblIndent)
+		singleOptionMultipleAliasesMultipleArgsLongDescriptionString string = fmt.Sprintf("%s %s\n%s%s", option1MultipleAliases, multipleArgsString, dblIndent, longDescription)
+		multipleOptionsString                                        string = fmt.Sprintf(
+			"%s\n\n%s\n\n%s",
+			option1SingleAlias,
+			Indent+option2SingleAlias,
+			Indent+option3SingleAlias,
+		)
+		multipleOptionsDescriptionString string = fmt.Sprintf(
+			"%s\n\n%s\n\n%s",
+			fmt.Sprintf("%s\n%ssome description", option1SingleAlias, dblIndent),
+			Indent+fmt.Sprintf("%s\n%ssome description", option2SingleAlias, dblIndent),
+			Indent+fmt.Sprintf("%s\n%ssome description", option3SingleAlias, dblIndent),
+		)
+		multipleOptionsLongDescriptionString string = fmt.Sprintf(
+			"%s\n\n%s\n\n%s",
+			fmt.Sprintf("%s\n%s%s", option1SingleAlias, dblIndent, longDescription),
+			Indent+fmt.Sprintf("%s\n%s%s", option2SingleAlias, dblIndent, longDescription),
+			Indent+fmt.Sprintf("%s\n%s%s", option3SingleAlias, dblIndent, longDescription),
+		)
+		multipleOptionsSingleArgString string = fmt.Sprintf(
+			"%s\n\n%s\n\n%s",
+			fmt.Sprintf("%s %s", option1SingleAlias, singleArgString),
+			Indent+fmt.Sprintf("%s %s", option2SingleAlias, singleArgString),
+			Indent+fmt.Sprintf("%s %s", option3SingleAlias, singleArgString),
+		)
+		multipleOptionsSingleArgDescriptionString string = fmt.Sprintf(
+			"%s\n\n%s\n\n%s",
+			fmt.Sprintf("%s %s\n%ssome description", option1SingleAlias, singleArgString, dblIndent),
+			Indent+fmt.Sprintf("%s %s\n%ssome description", option2SingleAlias, singleArgString, dblIndent),
+			Indent+fmt.Sprintf("%s %s\n%ssome description", option3SingleAlias, singleArgString, dblIndent),
+		)
+		multipleOptionsSingleArgLongDescriptionString string = fmt.Sprintf(
+			"%s\n\n%s\n\n%s",
+			fmt.Sprintf("%s %s\n%s%s", option1SingleAlias, singleArgString, dblIndent, longDescription),
+			Indent+fmt.Sprintf("%s %s\n%s%s", option2SingleAlias, singleArgString, dblIndent, longDescription),
+			Indent+fmt.Sprintf("%s %s\n%s%s", option3SingleAlias, singleArgString, dblIndent, longDescription),
+		)
+		multipleOptionsMultipleArgsString string = fmt.Sprintf(
+			"%s\n\n%s\n\n%s",
+			fmt.Sprintf("%s %s", option1SingleAlias, multipleArgsString),
+			Indent+fmt.Sprintf("%s %s", option2SingleAlias, multipleArgsString),
+			Indent+fmt.Sprintf("%s %s", option3SingleAlias, multipleArgsString),
+		)
+		multipleOptionsMultipleArgsDescriptionString string = fmt.Sprintf(
+			"%s\n\n%s\n\n%s",
+			fmt.Sprintf("%s %s\n%ssome description", option1SingleAlias, multipleArgsString, dblIndent),
+			Indent+fmt.Sprintf("%s %s\n%ssome description", option2SingleAlias, multipleArgsString, dblIndent),
+			Indent+fmt.Sprintf("%s %s\n%ssome description", option3SingleAlias, multipleArgsString, dblIndent),
+		)
+		multipleOptionsMultipleArgsLongDescriptionString string = fmt.Sprintf(
+			"%s\n\n%s\n\n%s",
+			fmt.Sprintf("%s %s\n%s%s", option1SingleAlias, multipleArgsString, dblIndent, longDescription),
+			Indent+fmt.Sprintf("%s %s\n%s%s", option2SingleAlias, multipleArgsString, dblIndent, longDescription),
+			Indent+fmt.Sprintf("%s %s\n%s%s", option3SingleAlias, multipleArgsString, dblIndent, longDescription),
+		)
+		multipleOptionsMultipleAliasesString string = fmt.Sprintf(
+			"%s\n\n%s\n\n%s",
+			option1MultipleAliases,
+			Indent+option2MultipleAliases,
+			Indent+option3MultipleAliases,
+		)
+		multipleOptionsMultipleAliasesDescriptionString string = fmt.Sprintf(
+			"%s\n\n%s\n\n%s",
+			fmt.Sprintf("%s\n%ssome description", option1MultipleAliases, dblIndent),
+			Indent+fmt.Sprintf("%s\n%ssome description", option2MultipleAliases, dblIndent),
+			Indent+fmt.Sprintf("%s\n%ssome description", option3MultipleAliases, dblIndent),
+		)
+		multipleOptionsMultipleAliasesLongDescriptionString string = fmt.Sprintf(
+			"%s\n\n%s\n\n%s",
+			fmt.Sprintf("%s\n%s%s", option1MultipleAliases, dblIndent, longDescription),
+			Indent+fmt.Sprintf("%s\n%s%s", option2MultipleAliases, dblIndent, longDescription),
+			Indent+fmt.Sprintf("%s\n%s%s", option3MultipleAliases, dblIndent, longDescription),
+		)
+		multipleOptionsMultipleAliasesSingleArgString string = fmt.Sprintf(
+			"%s\n\n%s\n\n%s",
+			fmt.Sprintf("%s %s", option1MultipleAliases, singleArgString),
+			Indent+fmt.Sprintf("%s %s", option2MultipleAliases, singleArgString),
+			Indent+fmt.Sprintf("%s %s", option3MultipleAliases, singleArgString),
+		)
+		multipleOptionsMultipleAliasesSingleArgDescriptionString string = fmt.Sprintf(
+			"%s\n\n%s\n\n%s",
+			fmt.Sprintf("%s %s\n%ssome description", option1MultipleAliases, singleArgString, dblIndent),
+			Indent+fmt.Sprintf("%s %s\n%ssome description", option2MultipleAliases, singleArgString, dblIndent),
+			Indent+fmt.Sprintf("%s %s\n%ssome description", option3MultipleAliases, singleArgString, dblIndent),
+		)
+		multipleOptionsMultipleAliasesSingleArgLongDescriptionString string = fmt.Sprintf(
+			"%s\n\n%s\n\n%s",
+			fmt.Sprintf("%s %s\n%s%s", option1MultipleAliases, singleArgString, dblIndent, longDescription),
+			Indent+fmt.Sprintf("%s %s\n%s%s", option2MultipleAliases, singleArgString, dblIndent, longDescription),
+			Indent+fmt.Sprintf("%s %s\n%s%s", option3MultipleAliases, singleArgString, dblIndent, longDescription),
+		)
+		multipleOptionsMultipleAliasesMultipleArgsString string = fmt.Sprintf(
+			"%s\n\n%s\n\n%s",
+			fmt.Sprintf("%s %s", option1MultipleAliases, multipleArgsString),
+			Indent+fmt.Sprintf("%s %s", option2MultipleAliases, multipleArgsString),
+			Indent+fmt.Sprintf("%s %s", option3MultipleAliases, multipleArgsString),
+		)
+		multipleOptionsMultipleAliasesMultipleArgsDescriptionString string = fmt.Sprintf(
+			"%s\n\n%s\n\n%s",
+			fmt.Sprintf("%s %s\n%ssome description", option1MultipleAliases, multipleArgsString, dblIndent),
+			Indent+fmt.Sprintf("%s %s\n%ssome description", option2MultipleAliases, multipleArgsString, dblIndent),
+			Indent+fmt.Sprintf("%s %s\n%ssome description", option3MultipleAliases, multipleArgsString, dblIndent),
+		)
+		multipleOptionsMultipleAliasesMultipleArgsLongDescriptionString string = fmt.Sprintf(
+			"%s\n\n%s\n\n%s",
+			fmt.Sprintf("%s %s\n%s%s", option1MultipleAliases, multipleArgsString, dblIndent, longDescription),
+			Indent+fmt.Sprintf("%s %s\n%s%s", option2MultipleAliases, multipleArgsString, dblIndent, longDescription),
+			Indent+fmt.Sprintf("%s %s\n%s%s", option3MultipleAliases, multipleArgsString, dblIndent, longDescription),
+		)
+	)
+
+	var (
+		singleCommandString                            string = command3Name
+		singleCommandDescriptionString                 string = fmt.Sprintf("%s\n%ssome description", command3Name, dblIndent)
+		singleCommandLongDescriptionString             string = fmt.Sprintf("%s\n%s%s", command3Name, dblIndent, longDescription)
+		singleCommandSingleArgString                   string = fmt.Sprintf("%s %s", command3Name, singleArgString)
+		singleCommandSingleArgDescriptionString        string = fmt.Sprintf("%s %s\n%ssome description", command3Name, singleArgString, dblIndent)
+		singleCommandSingleArgLongDescriptionString    string = fmt.Sprintf("%s %s\n%s%s", command3Name, singleArgString, dblIndent, longDescription)
+		singleCommandMultipleArgsString                string = fmt.Sprintf("%s %s", command3Name, multipleArgsString)
+		singleCommandMultipleArgsDescriptionString     string = fmt.Sprintf("%s %s\n%ssome description", command3Name, multipleArgsString, dblIndent)
+		singleCommandMultipleArgsLongDescriptionString string = fmt.Sprintf("%s %s\n%s%s", command3Name, multipleArgsString, dblIndent, longDescription)
+		multipleCommandsString                         string = fmt.Sprintf(
+			"%s\n\n%s\n\n%s",
+			command1Name,
+			Indent+command2Name,
+			Indent+command3Name,
+		)
+		multipleCommandsDescriptionString string = fmt.Sprintf(
+			"%s\n\n%s\n\n%s",
+			fmt.Sprintf("%s\n%ssome description", command1Name, dblIndent),
+			Indent+fmt.Sprintf("%s\n%ssome description", command2Name, dblIndent),
+			Indent+fmt.Sprintf("%s\n%ssome description", command3Name, dblIndent),
+		)
+		multipleCommandsLongDescriptionString string = fmt.Sprintf(
+			"%s\n\n%s\n\n%s",
+			fmt.Sprintf("%s\n%s%s", command1Name, dblIndent, longDescription),
+			Indent+fmt.Sprintf("%s\n%s%s", command2Name, dblIndent, longDescription),
+			Indent+fmt.Sprintf("%s\n%s%s", command3Name, dblIndent, longDescription),
+		)
+		multipleCommandsSingleArgString string = fmt.Sprintf(
+			"%s\n\n%s\n\n%s",
+			fmt.Sprintf("%s %s", command1Name, singleArgString),
+			Indent+fmt.Sprintf("%s %s", command2Name, singleArgString),
+			Indent+fmt.Sprintf("%s %s", command3Name, singleArgString),
+		)
+		multipleCommandsSingleArgDescriptionString string = fmt.Sprintf(
+			"%s\n\n%s\n\n%s",
+			fmt.Sprintf("%s %s\n%ssome description", command1Name, singleArgString, dblIndent),
+			Indent+fmt.Sprintf("%s %s\n%ssome description", command2Name, singleArgString, dblIndent),
+			Indent+fmt.Sprintf("%s %s\n%ssome description", command3Name, singleArgString, dblIndent),
+		)
+		multipleCommandsSingleArgLongDescriptionString string = fmt.Sprintf(
+			"%s\n\n%s\n\n%s",
+			fmt.Sprintf("%s %s\n%s%s", command1Name, singleArgString, dblIndent, longDescription),
+			Indent+fmt.Sprintf("%s %s\n%s%s", command2Name, singleArgString, dblIndent, longDescription),
+			Indent+fmt.Sprintf("%s %s\n%s%s", command3Name, singleArgString, dblIndent, longDescription),
+		)
+		multipleCommandsMultipleArgsString string = fmt.Sprintf(
+			"%s\n\n%s\n\n%s",
+			fmt.Sprintf("%s %s", command1Name, multipleArgsString),
+			Indent+fmt.Sprintf("%s %s", command2Name, multipleArgsString),
+			Indent+fmt.Sprintf("%s %s", command3Name, multipleArgsString),
+		)
+		multipleCommandsMultipleArgsDescriptionString string = fmt.Sprintf(
+			"%s\n\n%s\n\n%s",
+			fmt.Sprintf("%s %s\n%ssome description", command1Name, multipleArgsString, dblIndent),
+			Indent+fmt.Sprintf("%s %s\n%ssome description", command2Name, multipleArgsString, dblIndent),
+			Indent+fmt.Sprintf("%s %s\n%ssome description", command3Name, multipleArgsString, dblIndent),
+		)
+		multipleCommandsMultipleArgsLongDescriptionString string = fmt.Sprintf(
+			"%s\n\n%s\n\n%s",
+			fmt.Sprintf("%s %s\n%s%s", command1Name, multipleArgsString, dblIndent, longDescription),
+			Indent+fmt.Sprintf("%s %s\n%s%s", command2Name, multipleArgsString, dblIndent, longDescription),
+			Indent+fmt.Sprintf("%s %s\n%s%s", command3Name, multipleArgsString, dblIndent, longDescription),
+		)
+	)
+
+	t.Run("baseline", usageGlobalTester{
+		oGlobal: fmt.Sprintf("Usage:\n%sbase\n\n", Indent),
+	}.assertString())
+	t.Run("single global arg", usageGlobalTester{
+		oGlobal: fmt.Sprintf("Usage:\n%ssingle-global-arg %s\n\n", Indent, singleArgString),
+	}.assertString())
+	t.Run("multiple global args", usageGlobalTester{
+		oGlobal: fmt.Sprintf("Usage:\n%smultiple-global-args %s\n\n", Indent, multipleArgsString),
+	}.assertString())
+	t.Run("single option", usageGlobalTester{
+		oGlobal: fmt.Sprintf(
+			"Usage:\n%ssingle-option %s\n\nOptions:\n%s\n\n",
+			Indent,
+			summaryOptionsString,
+			Indent+singleOptionString,
+		),
+	}.assertString())
+	t.Run("single option description", usageGlobalTester{
+		oGlobal: fmt.Sprintf(
+			"Usage:\n%ssingle-option-description %s\n\nOptions:\n%s\n\n",
+			Indent,
+			summaryOptionsString,
+			Indent+singleOptionDescriptionString,
+		),
+	}.assertString())
+	t.Run("single option long description", usageGlobalTester{
+		oGlobal: fmt.Sprintf(
+			"Usage:\n%ssingle-option-long-description %s\n\nOptions:\n%s\n\n",
+			Indent,
+			summaryOptionsString,
+			Indent+singleOptionLongDescriptionString,
+		),
+	}.assertString())
+	t.Run("single option single arg", usageGlobalTester{
+		oGlobal: fmt.Sprintf(
+			"Usage:\n%ssingle-option-single-arg %s\n\nOptions:\n%s\n\n",
+			Indent,
+			summaryOptionsString,
+			Indent+singleOptionSingleArgString,
+		),
+	}.assertString())
+	t.Run("single option single arg description", usageGlobalTester{
+		oGlobal: fmt.Sprintf(
+			"Usage:\n%ssingle-option-single-arg-description %s\n\nOptions:\n%s\n\n",
+			Indent,
+			summaryOptionsString,
+			Indent+singleOptionSingleArgDescriptionString,
+		),
+	}.assertString())
+	t.Run("single option single arg long description", usageGlobalTester{
+		oGlobal: fmt.Sprintf(
+			"Usage:\n%ssingle-option-single-arg-long-description %s\n\nOptions:\n%s\n\n",
+			Indent,
+			summaryOptionsString,
+			Indent+singleOptionSingleArgLongDescriptionString,
+		),
+	}.assertString())
+	t.Run("single option multiple args", usageGlobalTester{
+		oGlobal: fmt.Sprintf(
+			"Usage:\n%ssingle-option-multiple-args %s\n\nOptions:\n%s\n\n",
+			Indent,
+			summaryOptionsString,
+			Indent+singleOptionMultipleArgsString,
+		),
+	}.assertString())
+	t.Run("single option multiple args description", usageGlobalTester{
+		oGlobal: fmt.Sprintf(
+			"Usage:\n%ssingle-option-multiple-args-description %s\n\nOptions:\n%s\n\n",
+			Indent,
+			summaryOptionsString,
+			Indent+singleOptionMultipleArgsDescriptionString,
+		),
+	}.assertString())
+	t.Run("single option multiple args long description", usageGlobalTester{
+		oGlobal: fmt.Sprintf(
+			"Usage:\n%ssingle-option-multiple-args-long-description %s\n\nOptions:\n%s\n\n",
+			Indent,
+			summaryOptionsString,
+			Indent+singleOptionMultipleArgsLongDescriptionString,
+		),
+	}.assertString())
+	t.Run("single option multiple aliases", usageGlobalTester{
+		oGlobal: fmt.Sprintf(
+			"Usage:\n%ssingle-option-multiple-aliases %s\n\nOptions:\n%s\n\n",
+			Indent,
+			summaryOptionsString,
+			Indent+singleOptionMultipleAliasesString,
+		),
+	}.assertString())
+	t.Run("single option multiple aliases description", usageGlobalTester{
+		oGlobal: fmt.Sprintf(
+			"Usage:\n%ssingle-option-multiple-aliases-description %s\n\nOptions:\n%s\n\n",
+			Indent,
+			summaryOptionsString,
+			Indent+singleOptionMultipleAliasesDescriptionString,
+		),
+	}.assertString())
+	t.Run("single option multiple aliases long description", usageGlobalTester{
+		oGlobal: fmt.Sprintf(
+			"Usage:\n%ssingle-option-multiple-aliases-long-description %s\n\nOptions:\n%s\n\n",
+			Indent,
+			summaryOptionsString,
+			Indent+singleOptionMultipleAliasesLongDescriptionString,
+		),
+	}.assertString())
+	t.Run("single option multiple aliases single arg", usageGlobalTester{
+		oGlobal: fmt.Sprintf(
+			"Usage:\n%ssingle-option-multiple-aliases-single-arg %s\n\nOptions:\n%s\n\n",
+			Indent,
+			summaryOptionsString,
+			Indent+singleOptionMultipleAliasesSingleArgString,
+		),
+	}.assertString())
+	t.Run("single option multiple aliases single arg description", usageGlobalTester{
+		oGlobal: fmt.Sprintf(
+			"Usage:\n%ssingle-option-multiple-aliases-single-arg-description %s\n\nOptions:\n%s\n\n",
+			Indent,
+			summaryOptionsString,
+			Indent+singleOptionMultipleAliasesSingleArgDescriptionString,
+		),
+	}.assertString())
+	t.Run("single option multiple aliases single arg long description", usageGlobalTester{
+		oGlobal: fmt.Sprintf(
+			"Usage:\n%ssingle-option-multiple-aliases-single-arg-long-description %s\n\nOptions:\n%s\n\n",
+			Indent,
+			summaryOptionsString,
+			Indent+singleOptionMultipleAliasesSingleArgLongDescriptionString,
+		),
+	}.assertString())
+	t.Run("single option multiple aliases multiple args", usageGlobalTester{
+		oGlobal: fmt.Sprintf(
+			"Usage:\n%ssingle-option-multiple-aliases-multiple-args %s\n\nOptions:\n%s\n\n",
+			Indent,
+			summaryOptionsString,
+			Indent+singleOptionMultipleAliasesMultipleArgsString,
+		),
+	}.assertString())
+	t.Run("single option multiple aliases multiple args description", usageGlobalTester{
+		oGlobal: fmt.Sprintf(
+			"Usage:\n%ssingle-option-multiple-aliases-multiple-args-description %s\n\nOptions:\n%s\n\n",
+			Indent,
+			summaryOptionsString,
+			Indent+singleOptionMultipleAliasesMultipleArgsDescriptionString,
+		),
+	}.assertString())
+	t.Run("single option multiple aliases multiple args long description", usageGlobalTester{
+		oGlobal: fmt.Sprintf(
+			"Usage:\n%ssingle-option-multiple-aliases-multiple-args-long-description %s\n\nOptions:\n%s\n\n",
+			Indent,
+			summaryOptionsString,
+			Indent+singleOptionMultipleAliasesMultipleArgsLongDescriptionString,
+		),
+	}.assertString())
+	t.Run("multiple options", usageGlobalTester{
+		oGlobal: fmt.Sprintf(
+			"Usage:\n%smultiple-options %s\n\nOptions:\n%s\n\n",
+			Indent,
+			summaryOptionsString,
+			Indent+multipleOptionsString,
+		),
+	}.assertString())
+	t.Run("multiple options description", usageGlobalTester{
+		oGlobal: fmt.Sprintf(
+			"Usage:\n%smultiple-options-description %s\n\nOptions:\n%s\n\n",
+			Indent,
+			summaryOptionsString,
+			Indent+multipleOptionsDescriptionString,
+		),
+	}.assertString())
+	t.Run("multiple options long description", usageGlobalTester{
+		oGlobal: fmt.Sprintf(
+			"Usage:\n%smultiple-options-long-description %s\n\nOptions:\n%s\n\n",
+			Indent,
+			summaryOptionsString,
+			Indent+multipleOptionsLongDescriptionString,
+		),
+	}.assertString())
+	t.Run("multiple options single arg", usageGlobalTester{
+		oGlobal: fmt.Sprintf(
+			"Usage:\n%smultiple-options-single-arg %s\n\nOptions:\n%s\n\n",
+			Indent,
+			summaryOptionsString,
+			Indent+multipleOptionsSingleArgString,
+		),
+	}.assertString())
+	t.Run("multiple options single arg description", usageGlobalTester{
+		oGlobal: fmt.Sprintf(
+			"Usage:\n%smultiple-options-single-arg-description %s\n\nOptions:\n%s\n\n",
+			Indent,
+			summaryOptionsString,
+			Indent+multipleOptionsSingleArgDescriptionString,
+		),
+	}.assertString())
+	t.Run("multiple options single arg long description", usageGlobalTester{
+		oGlobal: fmt.Sprintf(
+			"Usage:\n%smultiple-options-single-arg-long-description %s\n\nOptions:\n%s\n\n",
+			Indent,
+			summaryOptionsString,
+			Indent+multipleOptionsSingleArgLongDescriptionString,
+		),
+	}.assertString())
+	t.Run("multiple options multiple args", usageGlobalTester{
+		oGlobal: fmt.Sprintf(
+			"Usage:\n%smultiple-options-multiple-args %s\n\nOptions:\n%s\n\n",
+			Indent,
+			summaryOptionsString,
+			Indent+multipleOptionsMultipleArgsString,
+		),
+	}.assertString())
+	t.Run("multiple options multiple args description", usageGlobalTester{
+		oGlobal: fmt.Sprintf(
+			"Usage:\n%smultiple-options-multiple-args-description %s\n\nOptions:\n%s\n\n",
+			Indent,
+			summaryOptionsString,
+			Indent+multipleOptionsMultipleArgsDescriptionString,
+		),
+	}.assertString())
+	t.Run("multiple options multiple args long description", usageGlobalTester{
+		oGlobal: fmt.Sprintf(
+			"Usage:\n%smultiple-options-multiple-args-long-description %s\n\nOptions:\n%s\n\n",
+			Indent,
+			summaryOptionsString,
+			Indent+multipleOptionsMultipleArgsLongDescriptionString,
+		),
+	}.assertString())
+	t.Run("multiple options multiple aliases", usageGlobalTester{
+		oGlobal: fmt.Sprintf(
+			"Usage:\n%smultiple-options-multiple-aliases %s\n\nOptions:\n%s\n\n",
+			Indent,
+			summaryOptionsString,
+			Indent+multipleOptionsMultipleAliasesString,
+		),
+	}.assertString())
+	t.Run("multiple options multiple aliases description", usageGlobalTester{
+		oGlobal: fmt.Sprintf(
+			"Usage:\n%smultiple-options-multiple-aliases-description %s\n\nOptions:\n%s\n\n",
+			Indent,
+			summaryOptionsString,
+			Indent+multipleOptionsMultipleAliasesDescriptionString,
+		),
+	}.assertString())
+	t.Run("multiple options multiple aliases long description", usageGlobalTester{
+		oGlobal: fmt.Sprintf(
+			"Usage:\n%smultiple-options-multiple-aliases-long-description %s\n\nOptions:\n%s\n\n",
+			Indent,
+			summaryOptionsString,
+			Indent+multipleOptionsMultipleAliasesLongDescriptionString,
+		),
+	}.assertString())
+	t.Run("multiple options multiple aliases single arg", usageGlobalTester{
+		oGlobal: fmt.Sprintf(
+			"Usage:\n%smultiple-options-multiple-aliases-single-arg %s\n\nOptions:\n%s\n\n",
+			Indent,
+			summaryOptionsString,
+			Indent+multipleOptionsMultipleAliasesSingleArgString,
+		),
+	}.assertString())
+	t.Run("multiple options multiple aliases single arg description", usageGlobalTester{
+		oGlobal: fmt.Sprintf(
+			"Usage:\n%smultiple-options-multiple-aliases-single-arg-description %s\n\nOptions:\n%s\n\n",
+			Indent,
+			summaryOptionsString,
+			Indent+multipleOptionsMultipleAliasesSingleArgDescriptionString,
+		),
+	}.assertString())
+	t.Run("multiple options multiple aliases single arg long description", usageGlobalTester{
+		oGlobal: fmt.Sprintf(
+			"Usage:\n%smultiple-options-multiple-aliases-single-arg-long-description %s\n\nOptions:\n%s\n\n",
+			Indent,
+			summaryOptionsString,
+			Indent+multipleOptionsMultipleAliasesSingleArgLongDescriptionString,
+		),
+	}.assertString())
+	t.Run("multiple options multiple aliases multiple args", usageGlobalTester{
+		oGlobal: fmt.Sprintf(
+			"Usage:\n%smultiple-options-multiple-aliases-multiple-args %s\n\nOptions:\n%s\n\n",
+			Indent,
+			summaryOptionsString,
+			Indent+multipleOptionsMultipleAliasesMultipleArgsString,
+		),
+	}.assertString())
+	t.Run("multiple options multiple aliases multiple args description", usageGlobalTester{
+		oGlobal: fmt.Sprintf(
+			"Usage:\n%smultiple-options-multiple-aliases-multiple-args-description %s\n\nOptions:\n%s\n\n",
+			Indent,
+			summaryOptionsString,
+			Indent+multipleOptionsMultipleAliasesMultipleArgsDescriptionString,
+		),
+	}.assertString())
+	t.Run("multiple options multiple aliases multiple args long description", usageGlobalTester{
+		oGlobal: fmt.Sprintf(
+			"Usage:\n%smultiple-options-multiple-aliases-multiple-args-long-description %s\n\nOptions:\n%s\n\n",
+			Indent,
+			summaryOptionsString,
+			Indent+multipleOptionsMultipleAliasesMultipleArgsLongDescriptionString,
+		),
+	}.assertString())
+	t.Run("single command", usageGlobalTester{
+		oGlobal: fmt.Sprintf(
+			"Usage:\n%ssingle-command %s\n\n%s\n\nCommands:\n%s\n\n",
+			Indent,
+			summaryCommandsString,
+			fmt.Sprintf(summaryExtensionFormat, "single-command"),
+			Indent+singleCommandString,
+		),
+	}.assertString())
+	t.Run("single command description", usageGlobalTester{
+		oGlobal: fmt.Sprintf(
+			"Usage:\n%ssingle-command-description %s\n\n%s\n\nCommands:\n%s\n\n",
+			Indent,
+			summaryCommandsString,
+			fmt.Sprintf(summaryExtensionFormat, "single-command-description"),
+			Indent+singleCommandDescriptionString,
+		),
+	}.assertString())
+	t.Run("single command long description", usageGlobalTester{
+		oGlobal: fmt.Sprintf(
+			"Usage:\n%ssingle-command-long-description %s\n\n%s\n\nCommands:\n%s\n\n",
+			Indent,
+			summaryCommandsString,
+			fmt.Sprintf(summaryExtensionFormat, "single-command-long-description"),
+			Indent+singleCommandLongDescriptionString,
+		),
+	}.assertString())
+	t.Run("single command single arg", usageGlobalTester{
+		oGlobal: fmt.Sprintf(
+			"Usage:\n%ssingle-command-single-arg %s %s\n\n%s\n\nCommands:\n%s\n\n",
+			Indent,
+			summaryCommandsString,
+			summaryArgsString,
+			fmt.Sprintf(summaryExtensionFormat, "single-command-single-arg"),
+			Indent+singleCommandSingleArgString,
+		),
+	}.assertString())
+	t.Run("single command single arg description", usageGlobalTester{
+		oGlobal: fmt.Sprintf(
+			"Usage:\n%ssingle-command-single-arg-description %s %s\n\n%s\n\nCommands:\n%s\n\n",
+			Indent,
+			summaryCommandsString,
+			summaryArgsString,
+			fmt.Sprintf(summaryExtensionFormat, "single-command-single-arg-description"),
+			Indent+singleCommandSingleArgDescriptionString,
+		),
+	}.assertString())
+	t.Run("single command single arg long description", usageGlobalTester{
+		oGlobal: fmt.Sprintf(
+			"Usage:\n%ssingle-command-single-arg-long-description %s %s\n\n%s\n\nCommands:\n%s\n\n",
+			Indent,
+			summaryCommandsString,
+			summaryArgsString,
+			fmt.Sprintf(summaryExtensionFormat, "single-command-single-arg-long-description"),
+			Indent+singleCommandSingleArgLongDescriptionString,
+		),
+	}.assertString())
+	t.Run("single command multiple args", usageGlobalTester{
+		oGlobal: fmt.Sprintf(
+			"Usage:\n%ssingle-command-multiple-args %s %s\n\n%s\n\nCommands:\n%s\n\n",
+			Indent,
+			summaryCommandsString,
+			summaryArgsString,
+			fmt.Sprintf(summaryExtensionFormat, "single-command-multiple-args"),
+			Indent+singleCommandMultipleArgsString,
+		),
+	}.assertString())
+	t.Run("single command multiple args description", usageGlobalTester{
+		oGlobal: fmt.Sprintf(
+			"Usage:\n%ssingle-command-multiple-args-description %s %s\n\n%s\n\nCommands:\n%s\n\n",
+			Indent,
+			summaryCommandsString,
+			summaryArgsString,
+			fmt.Sprintf(summaryExtensionFormat, "single-command-multiple-args-description"),
+			Indent+singleCommandMultipleArgsDescriptionString,
+		),
+	}.assertString())
+	t.Run("single command multiple args long description", usageGlobalTester{
+		oGlobal: fmt.Sprintf(
+			"Usage:\n%ssingle-command-multiple-args-long-description %s %s\n\n%s\n\nCommands:\n%s\n\n",
+			Indent,
+			summaryCommandsString,
+			summaryArgsString,
+			fmt.Sprintf(summaryExtensionFormat, "single-command-multiple-args-long-description"),
+			Indent+singleCommandMultipleArgsLongDescriptionString,
+		),
+	}.assertString())
+	t.Run("multiple commands", usageGlobalTester{
+		oGlobal: fmt.Sprintf(
+			"Usage:\n%smultiple-commands %s\n\n%s\n\nCommands:\n%s\n\n",
+			Indent,
+			summaryCommandsString,
+			fmt.Sprintf(summaryExtensionFormat, "multiple-commands"),
+			Indent+multipleCommandsString,
+		),
+	}.assertString())
+	t.Run("multiple commands description", usageGlobalTester{
+		oGlobal: fmt.Sprintf(
+			"Usage:\n%smultiple-commands-description %s\n\n%s\n\nCommands:\n%s\n\n",
+			Indent,
+			summaryCommandsString,
+			fmt.Sprintf(summaryExtensionFormat, "multiple-commands-description"),
+			Indent+multipleCommandsDescriptionString,
+		),
+	}.assertString())
+	t.Run("multiple commands long description", usageGlobalTester{
+		oGlobal: fmt.Sprintf(
+			"Usage:\n%smultiple-commands-long-description %s\n\n%s\n\nCommands:\n%s\n\n",
+			Indent,
+			summaryCommandsString,
+			fmt.Sprintf(summaryExtensionFormat, "multiple-commands-long-description"),
+			Indent+multipleCommandsLongDescriptionString,
+		),
+	}.assertString())
+	t.Run("multiple commands single arg", usageGlobalTester{
+		oGlobal: fmt.Sprintf(
+			"Usage:\n%smultiple-commands-single-arg %s %s\n\n%s\n\nCommands:\n%s\n\n",
+			Indent,
+			summaryCommandsString,
+			summaryArgsString,
+			fmt.Sprintf(summaryExtensionFormat, "multiple-commands-single-arg"),
+			Indent+multipleCommandsSingleArgString,
+		),
+	}.assertString())
+	t.Run("multiple commands single arg description", usageGlobalTester{
+		oGlobal: fmt.Sprintf(
+			"Usage:\n%smultiple-commands-single-arg-description %s %s\n\n%s\n\nCommands:\n%s\n\n",
+			Indent,
+			summaryCommandsString,
+			summaryArgsString,
+			fmt.Sprintf(summaryExtensionFormat, "multiple-commands-single-arg-description"),
+			Indent+multipleCommandsSingleArgDescriptionString,
+		),
+	}.assertString())
+	t.Run("multiple commands single arg long description", usageGlobalTester{
+		oGlobal: fmt.Sprintf(
+			"Usage:\n%smultiple-commands-single-arg-long-description %s %s\n\n%s\n\nCommands:\n%s\n\n",
+			Indent,
+			summaryCommandsString,
+			summaryArgsString,
+			fmt.Sprintf(summaryExtensionFormat, "multiple-commands-single-arg-long-description"),
+			Indent+multipleCommandsSingleArgLongDescriptionString,
+		),
+	}.assertString())
+	t.Run("multiple commands multiple args", usageGlobalTester{
+		oGlobal: fmt.Sprintf(
+			"Usage:\n%smultiple-commands-multiple-args %s %s\n\n%s\n\nCommands:\n%s\n\n",
+			Indent,
+			summaryCommandsString,
+			summaryArgsString,
+			fmt.Sprintf(summaryExtensionFormat, "multiple-commands-multiple-args"),
+			Indent+multipleCommandsMultipleArgsString,
+		),
+	}.assertString())
+	t.Run("multiple commands multiple args description", usageGlobalTester{
+		oGlobal: fmt.Sprintf(
+			"Usage:\n%smultiple-commands-multiple-args-description %s %s\n\n%s\n\nCommands:\n%s\n\n",
+			Indent,
+			summaryCommandsString,
+			summaryArgsString,
+			fmt.Sprintf(summaryExtensionFormat, "multiple-commands-multiple-args-description"),
+			Indent+multipleCommandsMultipleArgsDescriptionString,
+		),
+	}.assertString())
+	t.Run("multiple commands multiple args long description", usageGlobalTester{
+		oGlobal: fmt.Sprintf(
+			"Usage:\n%smultiple-commands-multiple-args-long-description %s %s\n\n%s\n\nCommands:\n%s\n\n",
+			Indent,
+			summaryCommandsString,
+			summaryArgsString,
+			fmt.Sprintf(summaryExtensionFormat, "multiple-commands-multiple-args-long-description"),
+			Indent+multipleCommandsMultipleArgsLongDescriptionString,
+		),
+	}.assertString())
+	t.Run("single option single global arg", usageGlobalTester{
+		oGlobal: fmt.Sprintf(
+			"Usage:\n%ssingle-option-single-global-arg %s %s\n\nOptions:\n%s\n\n",
+			Indent,
+			summaryOptionsString,
+			singleArgString,
+			Indent+singleOptionLongDescriptionString,
+		),
+	}.assertString())
+	t.Run("single option multiple global args", usageGlobalTester{
+		oGlobal: fmt.Sprintf(
+			"Usage:\n%ssingle-option-multiple-global-args %s %s\n\nOptions:\n%s\n\n",
+			Indent,
+			summaryOptionsString,
+			multipleArgsString,
+			Indent+singleOptionLongDescriptionString,
+		),
+	}.assertString())
+	t.Run("single option single command", usageGlobalTester{
+		oGlobal: fmt.Sprintf(
+			"Usage:\n%ssingle-option-single-command %s %s %s\n\nOptions:\n%s\n\nCommands:\n%s\n\n",
+			Indent,
+			summaryCommandsString,
+			summaryOptionsString,
+			summaryArgsString,
+			Indent+singleOptionLongDescriptionString,
+			Indent+singleCommandLongDescriptionString,
+		),
+	}.assertString())
+	t.Run("single option multiple commands", usageGlobalTester{
+		oGlobal: fmt.Sprintf(
+			"Usage:\n%ssingle-option-multiple-commands %s %s %s\n\nOptions:\n%s\n\nCommands:\n%s\n\n",
+			Indent,
+			summaryCommandsString,
+			summaryOptionsString,
+			summaryArgsString,
+			Indent+singleOptionLongDescriptionString,
+			Indent+multipleCommandsLongDescriptionString,
+		),
+	}.assertString())
+	t.Run("multiple options single global arg", usageGlobalTester{
+		oGlobal: fmt.Sprintf(
+			"Usage:\n%smultiple-options-single-global-arg %s %s\n\nOptions:\n%s\n\n",
+			Indent,
+			summaryOptionsString,
+			singleArgString,
+			Indent+multipleOptionsLongDescriptionString,
+		),
+	}.assertString())
+	t.Run("multiple options multiple global args", usageGlobalTester{
+		oGlobal: fmt.Sprintf(
+			"Usage:\n%smultiple-options-multiple-global-args %s %s\n\nOptions:\n%s\n\n",
+			Indent,
+			summaryOptionsString,
+			multipleArgsString,
+			Indent+multipleOptionsLongDescriptionString,
+		),
+	}.assertString())
+	t.Run("multiple options single command", usageGlobalTester{
+		oGlobal: fmt.Sprintf(
+			"Usage:\n%smultiple-options-single-command %s %s %s\n\nOptions:\n%s\n\nCommands:\n%s\n\n",
+			Indent,
+			summaryCommandsString,
+			summaryOptionsString,
+			summaryArgsString,
+			Indent+multipleOptionsLongDescriptionString,
+			Indent+singleCommandLongDescriptionString,
+		),
+	}.assertString())
+	t.Run("multiple options multiple commands", usageGlobalTester{
+		oGlobal: fmt.Sprintf(
+			"Usage:\n%smultiple-options-multiple-commands %s %s %s\n\nOptions:\n%s\n\nCommands:\n%s\n\n",
+			Indent,
+			summaryCommandsString,
+			summaryOptionsString,
+			summaryArgsString,
+			Indent+multipleOptionsLongDescriptionString,
+			Indent+multipleCommandsLongDescriptionString,
+		),
+	}.assertString())
 }

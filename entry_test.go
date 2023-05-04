@@ -1,6 +1,8 @@
 package usage
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 )
 
@@ -168,6 +170,44 @@ func (tester newEntryTester) assertErrEmptyNameString() func(*testing.T) {
 	}
 }
 
+type entryStringTester struct {
+	oString string
+}
+
+func (tester entryStringTester) assertString() func(*testing.T) {
+	return func(t *testing.T) {
+		subcommandAndArgs, choppedDescription, _ := strings.Cut(tester.oString, "\n"+strings.Repeat(Indent, 2))
+		subcommandAndArgs = strings.TrimPrefix(subcommandAndArgs, Indent)
+		subcommand, args, _ := strings.Cut(subcommandAndArgs, " ")
+
+		var description strings.Builder
+		for _, line := range strings.Split(choppedDescription, "\n"+strings.Repeat(Indent, 2)) {
+			if line == "" {
+				description.WriteString("\n\n")
+			} else {
+				description.WriteString(" " + line)
+			}
+		}
+
+		var argSlc argSlice
+		if args == "" {
+			argSlc = make(argSlice, 0)
+		} else {
+			argSlc = argSlice(strings.Split(args[1:len(args)-1], "> <"))
+		}
+
+		sampleEntry := entry{
+			name:        subcommand,
+			Description: strings.Replace(description.String(), "> <", fmt.Sprintf("> %s <", strings.Repeat("a", 72)), 1),
+			args:        argSlc,
+		}
+
+		if got := sampleEntry.String(); got != tester.oString {
+			t.Errorf("string is %q but should be %q", got, tester.oString)
+		}
+	}
+}
+
 func TestEntryArgs(t *testing.T) {
 	t.Run("baseline", entryArgsTester{
 		oArgs: []string{"foo"},
@@ -257,4 +297,123 @@ func TestEntrySetName(t *testing.T) {
 	t.Run("empty name string", entrySetNameTester{
 		oErr: emptyNameStringErr(),
 	}.assertErrEmptyNameString())
+}
+
+func TestEntryString(t *testing.T) {
+	longDescription := "some very long description that will definitely push the limits\n" +
+		Indent + Indent + "of the screen size (it is very likely that this will cause the\n" +
+		Indent + Indent + "line break at 64 characters)\n" +
+		Indent + Indent + "\n" +
+		Indent + Indent + "here's another paragraph just in case with a very long word\n" +
+		Indent + Indent + "between these brackets > < that will not appear in the final\n" +
+		Indent + Indent + "output because it is longer than a line"
+
+	t.Run("baseline", entryStringTester{
+		oString: Indent + "base",
+	}.assertString())
+	t.Run("description", entryStringTester{
+		oString: fmt.Sprintf(
+			"%sdescription\n%ssome description",
+			Indent,
+			strings.Repeat(Indent, 2),
+		),
+	}.assertString())
+	t.Run("long description", entryStringTester{
+		oString: fmt.Sprintf(
+			"%slong-description\n%s%s",
+			Indent,
+			strings.Repeat(Indent, 2),
+			longDescription,
+		),
+	}.assertString())
+	t.Run("single arg", entryStringTester{
+		oString: Indent + "single-arg <foo>",
+	}.assertString())
+	t.Run("multiple args", entryStringTester{
+		oString: Indent + "multiple-args <foo> <bar> <baz>",
+	}.assertString())
+	t.Run("description single arg", entryStringTester{
+		oString: fmt.Sprintf(
+			"%sdescription-single-arg <foo>\n%ssome description",
+			Indent,
+			strings.Repeat(Indent, 2),
+		),
+	}.assertString())
+	t.Run("description multiple args", entryStringTester{
+		oString: fmt.Sprintf(
+			"%sdescription-multiple-args <foo> <bar> <baz>\n%ssome description",
+			Indent,
+			strings.Repeat(Indent, 2),
+		),
+	}.assertString())
+	t.Run("long description single arg", entryStringTester{
+		oString: fmt.Sprintf(
+			"%slong-description-single-arg <foo>\n%s%s",
+			Indent,
+			strings.Repeat(Indent, 2),
+			longDescription,
+		),
+	}.assertString())
+	t.Run("long description multiple args", entryStringTester{
+		oString: fmt.Sprintf(
+			"%slong-description-multiple-args <foo> <bar> <baz>\n%s%s",
+			Indent,
+			strings.Repeat(Indent, 2),
+			longDescription,
+		),
+	}.assertString())
+	t.Run("option", entryStringTester{
+		oString: Indent + "option",
+	}.assertString())
+	t.Run("option description", entryStringTester{
+		oString: fmt.Sprintf(
+			"%soption-description\n%ssome description",
+			Indent,
+			strings.Repeat(Indent, 2),
+		),
+	}.assertString())
+	t.Run("option long description", entryStringTester{
+		oString: fmt.Sprintf(
+			"%soption-long-description\n%s%s",
+			Indent,
+			strings.Repeat(Indent, 2),
+			longDescription,
+		),
+	}.assertString())
+	t.Run("option single arg", entryStringTester{
+		oString: Indent + "option-single-arg <foo>",
+	}.assertString())
+	t.Run("option multiple args", entryStringTester{
+		oString: Indent + "option-multiple-args <foo> <bar> <baz>",
+	}.assertString())
+	t.Run("option description single arg", entryStringTester{
+		oString: fmt.Sprintf(
+			"%soption-description-single-arg <foo>\n%ssome description",
+			Indent,
+			strings.Repeat(Indent, 2),
+		),
+	}.assertString())
+	t.Run("option description multiple args", entryStringTester{
+		oString: fmt.Sprintf(
+			"%soption-description-multiple-args <foo> <bar> <baz>\n%ssome description",
+			Indent,
+			strings.Repeat(Indent, 2),
+		),
+	}.assertString())
+	t.Run("option long description single arg", entryStringTester{
+		oString: fmt.Sprintf(
+			"%soption-long-description-single-arg <foo>\n%s%s",
+			Indent,
+			strings.Repeat(Indent, 2),
+			longDescription,
+		),
+	}.assertString())
+	t.Run("option long description multiple args", entryStringTester{
+		oString: fmt.Sprintf(
+			"%soption-long-description-multiple-args <foo> <bar> <baz>\n%s%s",
+			Indent,
+			strings.Repeat(Indent, 2),
+			longDescription,
+		),
+	}.assertString())
 }

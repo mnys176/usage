@@ -1,6 +1,10 @@
 package usage
 
-import "testing"
+import (
+	"fmt"
+	"strings"
+	"testing"
+)
 
 func assertAliasSlice(t *testing.T, got, want []string) {
 	if len(got) != len(want) {
@@ -9,17 +13,6 @@ func assertAliasSlice(t *testing.T, got, want []string) {
 	for i, gotAlias := range got {
 		if gotAlias != want[i] {
 			t.Errorf("alias is %q but should be %q", gotAlias, want[i])
-		}
-	}
-}
-
-func assertArgSlice(t *testing.T, got, want []string) {
-	if len(got) != len(want) {
-		t.Fatalf("%d args returned but wanted %d", len(got), len(want))
-	}
-	for i, gotArg := range got {
-		if gotArg != want[i] {
-			t.Errorf("arg is %q but should be %q", gotArg, want[i])
 		}
 	}
 }
@@ -161,6 +154,46 @@ func (tester optionSetAliasesTester) assertErrEmptyAliasString() func(*testing.T
 	}
 }
 
+type optionStringTester struct {
+	oString string
+}
+
+func (tester optionStringTester) assertString() func(*testing.T) {
+	return func(t *testing.T) {
+		aliasesAndArgs, choppedDescription, _ := strings.Cut(tester.oString, "\n"+strings.Repeat(Indent, 2))
+		aliasesAndArgs = strings.TrimPrefix(aliasesAndArgs, Indent)
+
+		aliases := make([]string, 0)
+		argSlc := make(argSlice, 0)
+		for _, token := range strings.Split(aliasesAndArgs, " ") {
+			if strings.HasPrefix(token, "-") {
+				aliases = append(aliases, strings.Trim(token, "-,"))
+			} else if strings.HasPrefix(token, "<") {
+				argSlc = append(argSlc, strings.Trim(token, "<>"))
+			}
+		}
+
+		var description strings.Builder
+		for _, line := range strings.Split(choppedDescription, "\n"+strings.Repeat(Indent, 2)) {
+			if line == "" {
+				description.WriteString("\n\n")
+			} else {
+				description.WriteString(" " + line)
+			}
+		}
+
+		sampleOption := option{
+			aliases:     aliases,
+			Description: strings.Replace(description.String(), "> <", fmt.Sprintf("> %s <", strings.Repeat("a", 72)), 1),
+			args:        argSlc,
+		}
+
+		if got := sampleOption.String(); got != tester.oString {
+			t.Errorf("string is %q but should be %q", got, tester.oString)
+		}
+	}
+}
+
 func TestOptionArgs(t *testing.T) {
 	t.Run("baseline", optionArgsTester{
 		oArgs: []string{"foo"},
@@ -222,6 +255,125 @@ func TestNewOption(t *testing.T) {
 		iDescription: "foo",
 		oErr:         emptyAliasStringErr(),
 	}.assertErrEmptyAliasString())
+}
+
+func TestOptionString(t *testing.T) {
+	longDescription := "some very long description that will definitely push the limits\n" +
+		Indent + Indent + "of the screen size (it is very likely that this will cause the\n" +
+		Indent + Indent + "line break at 64 characters)\n" +
+		Indent + Indent + "\n" +
+		Indent + Indent + "here's another paragraph just in case with a very long word\n" +
+		Indent + Indent + "between these brackets > < that will not appear in the final\n" +
+		Indent + Indent + "output because it is longer than a line"
+
+	t.Run("baseline", optionStringTester{
+		oString: Indent + "--base",
+	}.assertString())
+	t.Run("description", optionStringTester{
+		oString: fmt.Sprintf(
+			"%s--description\n%ssome description",
+			Indent,
+			strings.Repeat(Indent, 2),
+		),
+	}.assertString())
+	t.Run("long description", optionStringTester{
+		oString: fmt.Sprintf(
+			"%s--long-description\n%s%s",
+			Indent,
+			strings.Repeat(Indent, 2),
+			longDescription,
+		),
+	}.assertString())
+	t.Run("single arg", optionStringTester{
+		oString: Indent + "--single-arg <arg1>",
+	}.assertString())
+	t.Run("multiple args", optionStringTester{
+		oString: Indent + "--multiple-args <arg1> <arg2> <arg3>",
+	}.assertString())
+	t.Run("description single arg", optionStringTester{
+		oString: fmt.Sprintf(
+			"%s--description-single-arg <arg1>\n%ssome description",
+			Indent,
+			strings.Repeat(Indent, 2),
+		),
+	}.assertString())
+	t.Run("description multiple args", optionStringTester{
+		oString: fmt.Sprintf(
+			"%s--description-multiple-args <arg1> <arg2> <arg3>\n%ssome description",
+			Indent,
+			strings.Repeat(Indent, 2),
+		),
+	}.assertString())
+	t.Run("long description single arg", optionStringTester{
+		oString: fmt.Sprintf(
+			"%s--long-description-single-arg <arg1>\n%s%s",
+			Indent,
+			strings.Repeat(Indent, 2),
+			longDescription,
+		),
+	}.assertString())
+	t.Run("long description multiple args", optionStringTester{
+		oString: fmt.Sprintf(
+			"%s--long-description-multiple-arg <arg1> <arg2> <arg3>\n%s%s",
+			Indent,
+			strings.Repeat(Indent, 2),
+			longDescription,
+		),
+	}.assertString())
+	t.Run("multiple aliases", optionStringTester{
+		oString: Indent + "--multiple-aliases, --another-one",
+	}.assertString())
+	t.Run("multiple aliases description", optionStringTester{
+		oString: fmt.Sprintf(
+			"%s--multiple-aliases, --another-one\n%ssome description",
+			Indent,
+			strings.Repeat(Indent, 2),
+		),
+	}.assertString())
+	t.Run("multiple aliases long description", optionStringTester{
+		oString: fmt.Sprintf(
+			"%s--multiple-aliases, --long-description\n%s%s",
+			Indent,
+			strings.Repeat(Indent, 2),
+			longDescription,
+		),
+	}.assertString())
+	t.Run("multiple aliases single arg", optionStringTester{
+		oString: Indent + "--multiple-aliases, --another-one <foo>",
+	}.assertString())
+	t.Run("multiple aliases multiple args", optionStringTester{
+		oString: Indent + "--multiple-aliases, --another-one <foo> <bar> <baz>",
+	}.assertString())
+	t.Run("multiple aliases description single arg", optionStringTester{
+		oString: fmt.Sprintf(
+			"%s--multiple-aliases, -m <foo>\n%ssome description",
+			Indent,
+			strings.Repeat(Indent, 2),
+		),
+	}.assertString())
+	t.Run("multiple aliases long description single arg", optionStringTester{
+		oString: fmt.Sprintf(
+			"%s--multiple-aliases, --another-one <foo>\n%s%s",
+			Indent,
+			strings.Repeat(Indent, 2),
+			longDescription,
+		),
+	}.assertString())
+	t.Run("multiple aliases description single arg", optionStringTester{
+		oString: fmt.Sprintf(
+			"%s--multiple-aliases, --another-one <foo> <bar> <baz>\n%ssome description",
+			Indent,
+			strings.Repeat(Indent, 2),
+		),
+	}.assertString())
+	t.Run("multiple aliases long description single arg", optionStringTester{
+		oString: fmt.Sprintf(
+			"%s--multiple-aliases, --another-one <foo> <bar> <baz>\n%s%s",
+			Indent,
+			strings.Repeat(Indent, 2),
+			longDescription,
+		),
+	}.assertString())
 }
 
 func TestOptionSetAliases(t *testing.T) {

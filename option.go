@@ -1,9 +1,11 @@
 package usage
 
+import "strings"
+
 type option struct {
 	Description string
 	aliases     []string
-	args        []string
+	args        argSlice
 }
 
 func (o option) Args() []string {
@@ -29,6 +31,27 @@ func (o *option) SetAliases(aliases []string) error {
 	}
 	o.aliases = aliases
 	return nil
+}
+
+func (o option) String() string {
+	var optionBuilder, aliasBuilder strings.Builder
+	for _, alias := range o.aliases {
+		if len(alias) == 1 {
+			aliasBuilder.WriteString("-" + alias)
+		} else {
+			aliasBuilder.WriteString("--" + alias)
+		}
+		aliasBuilder.WriteString(", ")
+	}
+	optionBuilder.WriteString(Indent + aliasBuilder.String()[:len(aliasBuilder.String())-2])
+
+	if len(o.args) > 0 {
+		optionBuilder.WriteString(" " + o.args.String())
+	}
+	for _, line := range chopMultipleParagraphs(o.Description, 64) {
+		optionBuilder.WriteString("\n" + strings.Repeat(Indent, 2) + line)
+	}
+	return optionBuilder.String()
 }
 
 func NewOption(aliases []string, description string) (*option, error) {

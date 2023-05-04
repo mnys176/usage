@@ -7,11 +7,13 @@ import (
 	"strings"
 )
 
+const Indent string = "    "
+
 type usage struct {
 	name    string
 	entries map[string]entry
 	options []option
-	args    []string
+	args    argSlice
 }
 
 func (u usage) Args() []string {
@@ -64,55 +66,49 @@ func (u *usage) AddEntry(e *entry) error {
 }
 
 func (u usage) Global() string {
-	var summary, summaryExt strings.Builder
-	summary.WriteString(u.name)
-	summaryExt.WriteString("\n\nTo learn more about the available options" +
-		" for each command, use the --help flag like so:\n\n" + u.name)
-	if len(u.entries) > 0 {
-		summary.WriteString(" <command>")
-		summaryExt.WriteString(" <command>")
-	}
-	if len(u.options) > 0 {
-		summary.WriteString(" [options]")
-	}
-	if len(u.args) > 0 {
-		summary.WriteString(" <args>")
-	}
-	summaryExt.WriteString(" --help")
-
-	// If there are no subcommands, this section does not need to
-	// be appended.
-	if len(u.entries) > 0 {
-		summary.WriteString(summaryExt.String())
-	}
+	hasEntries, hasOptions, hasArgs := len(u.entries) > 0, len(u.options) > 0, len(u.args) > 0
 
 	var usage strings.Builder
-	usage.WriteString("Usage:")
-	for _, line := range chopSingleParagraph(summary.String(), 68) {
-		usage.WriteString("\n    " + line)
+	usage.WriteString("Usage:\n" + Indent)
+
+	var summary strings.Builder
+	summary.WriteString(u.name)
+	if hasEntries {
+		summary.WriteString(" <command>")
 	}
-	usage.WriteString("\n")
+	if hasOptions {
+		summary.WriteString(" [options]")
+	}
+	if hasArgs {
+		if hasEntries {
+			summary.WriteString(" <args>")
+		} else {
+			summary.WriteString(" " + u.args.String())
+		}
+	}
+	if hasEntries {
+		summary.WriteRune('\n')
+		extension := "To learn more about the available options" +
+			" for each command, use the --help flag like so:"
+		for _, line := range chopSingleParagraph(extension, 68) {
+			summary.WriteString("\n" + Indent + line)
+		}
+		summary.WriteString(fmt.Sprintf("\n\n%s%s <command> --help", Indent, u.name))
+	}
+	usage.WriteString(summary.String() + "\n")
 
-	// No commands, no command section.
-	if len(u.entries) == 0 {
-		return usage.String()
+	if hasOptions {
+		usage.WriteString("\nOptions:")
+		for _, o := range u.options {
+			usage.WriteString(fmt.Sprintf("\n%s\n", o.String()))
+		}
 	}
 
-	usage.WriteString("\nCommands:")
-
-	for _, e := range u.Entries() {
-		var b strings.Builder
-		for _, arg := range e.Args() {
-			b.WriteString(" <" + arg + ">")
+	if hasEntries {
+		usage.WriteString("\nCommands:")
+		for _, e := range u.Entries() {
+			usage.WriteString(fmt.Sprintf("\n%s\n", e.String()))
 		}
-		args := b.String()
-
-		entrySummary := fmt.Sprintf("\n    %s%s", e.name, args)
-		usage.WriteString(entrySummary)
-		for _, line := range chopMultipleParagraphs(e.Description, 64) {
-			usage.WriteString("\n        " + line)
-		}
-		usage.WriteString("\n")
 	}
 	return usage.String()
 }
@@ -142,9 +138,6 @@ func NewUsage(name string) (*usage, error) {
 }
 
 func chopSingleParagraph(p string, length int) []string {
-	if length < 0 {
-		panic("length cannot be negative")
-	}
 	p = strings.TrimSpace(p)
 	splitter := regexp.MustCompile(`\s+`)
 	words := splitter.Split(p, -1)
@@ -175,6 +168,9 @@ func chopMultipleParagraphs(ps string, length int) []string {
 			lines = append(lines, pLines...)
 		}
 	}
+	if len(lines) == 0 {
+		return lines
+	}
 	return lines[:len(lines)-1]
 }
 
@@ -200,7 +196,7 @@ func chopMultipleParagraphs(ps string, length int) []string {
 // 		summary := fmt.Sprintf("freeformgen %s %s %s", names, options, args)
 
 // 		b.Reset()
-// 		b.WriteString("Usage:\n    freeformgen " + e.Name() + " ")
+// 		b.WriteString("Usa%sfreeformgen " + e.Nam Indent,e() + " ")
 // 		b.WriteString(args.String())
 // 	}
 // 	return ""

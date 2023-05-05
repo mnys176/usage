@@ -180,31 +180,3 @@ func chopMultipleParagraphs(ps string, length int) []string {
 	}
 	return lines[:len(lines)-1]
 }
-
-// func Lookup(name string) string {
-// 	if e, ok := inventory[name]; ok {
-// 		var b strings.Builder
-// 		for _, name := range e.Names() {
-// 			b.WriteString(name + ", ")
-// 		}
-// 		names := strings.TrimSuffix(b.String(), ", ")
-
-// 		b.Reset()
-// 		for _, arg := range e.Args() {
-// 			b.WriteString("<" + arg + "> ")
-// 		}
-// 		args := strings.TrimSuffix(b.String(), " ")
-
-// 		var options string
-// 		if len(e.Options()) > 0 {
-// 			options = "[options] "
-// 		}
-
-// 		summary := fmt.Sprintf("freeformgen %s %s %s", names, options, args)
-
-// 		b.Reset()
-// 		b.WriteString("Usa%sfreeformgen " + e.Nam Indent,e() + " ")
-// 		b.WriteString(args.String())
-// 	}
-// 	return ""
-// }

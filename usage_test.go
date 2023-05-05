@@ -390,26 +390,26 @@ func TestUsageEntries(t *testing.T) {
 	}.assertUsageEntries())
 }
 
-type usageGlobalTester struct {
-	oGlobal string
+type usageUsageTester struct {
+	oUsage string
 }
 
-func (tester usageGlobalTester) assertString() func(*testing.T) {
+func (tester usageUsageTester) assertString() func(*testing.T) {
 	return func(t *testing.T) {
-		summaryStart := strings.Index(tester.oGlobal, "Usage:")
-		optionsStart := strings.Index(tester.oGlobal, "Options:")
-		commandsStart := strings.Index(tester.oGlobal, "Commands:")
+		summaryStart := strings.Index(tester.oUsage, "Usage:")
+		optionsStart := strings.Index(tester.oUsage, "Options:")
+		commandsStart := strings.Index(tester.oUsage, "Commands:")
 
 		var name string
 		var args argSlice
 		if summaryStart > -1 {
 			var summarySection string
 			if optionsStart > -1 {
-				summarySection = tester.oGlobal[summaryStart:optionsStart]
+				summarySection = tester.oUsage[summaryStart:optionsStart]
 			} else if commandsStart > -1 {
-				summarySection = tester.oGlobal[summaryStart:commandsStart]
+				summarySection = tester.oUsage[summaryStart:commandsStart]
 			} else {
-				summarySection = tester.oGlobal[summaryStart:]
+				summarySection = tester.oUsage[summaryStart:]
 			}
 			name, args = stringToUsageNameAndArgs(summarySection)
 		}
@@ -418,9 +418,9 @@ func (tester usageGlobalTester) assertString() func(*testing.T) {
 		if optionsStart > -1 {
 			var optionsSection string
 			if commandsStart > -1 {
-				optionsSection = tester.oGlobal[optionsStart:commandsStart]
+				optionsSection = tester.oUsage[optionsStart:commandsStart]
 			} else {
-				optionsSection = tester.oGlobal[optionsStart:]
+				optionsSection = tester.oUsage[optionsStart:]
 			}
 			sampleOptions = stringToMultipleOptions(optionsSection)
 		} else {
@@ -429,7 +429,7 @@ func (tester usageGlobalTester) assertString() func(*testing.T) {
 
 		var sampleEntries []entry
 		if commandsStart > -1 {
-			commandsSection := tester.oGlobal[commandsStart:]
+			commandsSection := tester.oUsage[commandsStart:]
 			sampleEntries = stringToMultipleEntries(commandsSection)
 		}
 
@@ -443,8 +443,8 @@ func (tester usageGlobalTester) assertString() func(*testing.T) {
 			sampleUsage.entries[e.name] = e
 		}
 
-		if got := sampleUsage.Global(); got != tester.oGlobal {
-			t.Errorf("string is %q but should be %q", got, tester.oGlobal)
+		if got := sampleUsage.Usage(); got != tester.oUsage {
+			t.Errorf("string is %q but should be %q", got, tester.oUsage)
 		}
 	}
 }
@@ -525,7 +525,7 @@ func TestUsageSetName(t *testing.T) {
 	}.assertErrEmptyNameString())
 }
 
-func TestUsageGlobal(t *testing.T) {
+func TestUsageUsage(t *testing.T) {
 	const dblIndent string = Indent + Indent
 	const longDescription string = "some very long description that will definitely push the limits\n" +
 		Indent + Indent + "of the screen size (it is very likely that this will cause the\n" +
@@ -757,305 +757,305 @@ func TestUsageGlobal(t *testing.T) {
 		)
 	)
 
-	t.Run("baseline", usageGlobalTester{
-		oGlobal: fmt.Sprintf("Usage:\n%sbase\n", Indent),
+	t.Run("baseline", usageUsageTester{
+		oUsage: fmt.Sprintf("Usage:\n%sbase\n", Indent),
 	}.assertString())
-	t.Run("single global arg", usageGlobalTester{
-		oGlobal: fmt.Sprintf("Usage:\n%ssingle-global-arg %s\n", Indent, singleArgString),
+	t.Run("single global arg", usageUsageTester{
+		oUsage: fmt.Sprintf("Usage:\n%ssingle-global-arg %s\n", Indent, singleArgString),
 	}.assertString())
-	t.Run("multiple global args", usageGlobalTester{
-		oGlobal: fmt.Sprintf("Usage:\n%smultiple-global-args %s\n", Indent, multipleArgsString),
+	t.Run("multiple global args", usageUsageTester{
+		oUsage: fmt.Sprintf("Usage:\n%smultiple-global-args %s\n", Indent, multipleArgsString),
 	}.assertString())
-	t.Run("single option", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("single option", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-option %s\n\nOptions:\n%s\n",
 			Indent,
 			summaryOptionsString,
 			Indent+singleOptionString,
 		),
 	}.assertString())
-	t.Run("single option description", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("single option description", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-option-description %s\n\nOptions:\n%s\n",
 			Indent,
 			summaryOptionsString,
 			Indent+singleOptionDescriptionString,
 		),
 	}.assertString())
-	t.Run("single option long description", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("single option long description", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-option-long-description %s\n\nOptions:\n%s\n",
 			Indent,
 			summaryOptionsString,
 			Indent+singleOptionLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("single option single arg", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("single option single arg", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-option-single-arg %s\n\nOptions:\n%s\n",
 			Indent,
 			summaryOptionsString,
 			Indent+singleOptionSingleArgString,
 		),
 	}.assertString())
-	t.Run("single option single arg description", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("single option single arg description", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-option-single-arg-description %s\n\nOptions:\n%s\n",
 			Indent,
 			summaryOptionsString,
 			Indent+singleOptionSingleArgDescriptionString,
 		),
 	}.assertString())
-	t.Run("single option single arg long description", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("single option single arg long description", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-option-single-arg-long-description %s\n\nOptions:\n%s\n",
 			Indent,
 			summaryOptionsString,
 			Indent+singleOptionSingleArgLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("single option multiple args", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("single option multiple args", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-option-multiple-args %s\n\nOptions:\n%s\n",
 			Indent,
 			summaryOptionsString,
 			Indent+singleOptionMultipleArgsString,
 		),
 	}.assertString())
-	t.Run("single option multiple args description", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("single option multiple args description", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-option-multiple-args-description %s\n\nOptions:\n%s\n",
 			Indent,
 			summaryOptionsString,
 			Indent+singleOptionMultipleArgsDescriptionString,
 		),
 	}.assertString())
-	t.Run("single option multiple args long description", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("single option multiple args long description", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-option-multiple-args-long-description %s\n\nOptions:\n%s\n",
 			Indent,
 			summaryOptionsString,
 			Indent+singleOptionMultipleArgsLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("single option multiple aliases", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("single option multiple aliases", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-option-multiple-aliases %s\n\nOptions:\n%s\n",
 			Indent,
 			summaryOptionsString,
 			Indent+singleOptionMultipleAliasesString,
 		),
 	}.assertString())
-	t.Run("single option multiple aliases description", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("single option multiple aliases description", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-option-multiple-aliases-description %s\n\nOptions:\n%s\n",
 			Indent,
 			summaryOptionsString,
 			Indent+singleOptionMultipleAliasesDescriptionString,
 		),
 	}.assertString())
-	t.Run("single option multiple aliases long description", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("single option multiple aliases long description", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-option-multiple-aliases-long-description %s\n\nOptions:\n%s\n",
 			Indent,
 			summaryOptionsString,
 			Indent+singleOptionMultipleAliasesLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("single option multiple aliases single arg", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("single option multiple aliases single arg", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-option-multiple-aliases-single-arg %s\n\nOptions:\n%s\n",
 			Indent,
 			summaryOptionsString,
 			Indent+singleOptionMultipleAliasesSingleArgString,
 		),
 	}.assertString())
-	t.Run("single option multiple aliases single arg description", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("single option multiple aliases single arg description", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-option-multiple-aliases-single-arg-description %s\n\nOptions:\n%s\n",
 			Indent,
 			summaryOptionsString,
 			Indent+singleOptionMultipleAliasesSingleArgDescriptionString,
 		),
 	}.assertString())
-	t.Run("single option multiple aliases single arg long description", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("single option multiple aliases single arg long description", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-option-multiple-aliases-single-arg-long-description %s\n\nOptions:\n%s\n",
 			Indent,
 			summaryOptionsString,
 			Indent+singleOptionMultipleAliasesSingleArgLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("single option multiple aliases multiple args", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("single option multiple aliases multiple args", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-option-multiple-aliases-multiple-args %s\n\nOptions:\n%s\n",
 			Indent,
 			summaryOptionsString,
 			Indent+singleOptionMultipleAliasesMultipleArgsString,
 		),
 	}.assertString())
-	t.Run("single option multiple aliases multiple args description", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("single option multiple aliases multiple args description", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-option-multiple-aliases-multiple-args-description %s\n\nOptions:\n%s\n",
 			Indent,
 			summaryOptionsString,
 			Indent+singleOptionMultipleAliasesMultipleArgsDescriptionString,
 		),
 	}.assertString())
-	t.Run("single option multiple aliases multiple args long description", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("single option multiple aliases multiple args long description", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-option-multiple-aliases-multiple-args-long-description %s\n\nOptions:\n%s\n",
 			Indent,
 			summaryOptionsString,
 			Indent+singleOptionMultipleAliasesMultipleArgsLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple options", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("multiple options", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-options %s\n\nOptions:\n%s\n",
 			Indent,
 			summaryOptionsString,
 			Indent+multipleOptionsString,
 		),
 	}.assertString())
-	t.Run("multiple options description", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("multiple options description", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-options-description %s\n\nOptions:\n%s\n",
 			Indent,
 			summaryOptionsString,
 			Indent+multipleOptionsDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple options long description", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("multiple options long description", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-options-long-description %s\n\nOptions:\n%s\n",
 			Indent,
 			summaryOptionsString,
 			Indent+multipleOptionsLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple options single arg", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("multiple options single arg", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-options-single-arg %s\n\nOptions:\n%s\n",
 			Indent,
 			summaryOptionsString,
 			Indent+multipleOptionsSingleArgString,
 		),
 	}.assertString())
-	t.Run("multiple options single arg description", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("multiple options single arg description", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-options-single-arg-description %s\n\nOptions:\n%s\n",
 			Indent,
 			summaryOptionsString,
 			Indent+multipleOptionsSingleArgDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple options single arg long description", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("multiple options single arg long description", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-options-single-arg-long-description %s\n\nOptions:\n%s\n",
 			Indent,
 			summaryOptionsString,
 			Indent+multipleOptionsSingleArgLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple options multiple args", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("multiple options multiple args", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-options-multiple-args %s\n\nOptions:\n%s\n",
 			Indent,
 			summaryOptionsString,
 			Indent+multipleOptionsMultipleArgsString,
 		),
 	}.assertString())
-	t.Run("multiple options multiple args description", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("multiple options multiple args description", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-options-multiple-args-description %s\n\nOptions:\n%s\n",
 			Indent,
 			summaryOptionsString,
 			Indent+multipleOptionsMultipleArgsDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple options multiple args long description", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("multiple options multiple args long description", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-options-multiple-args-long-description %s\n\nOptions:\n%s\n",
 			Indent,
 			summaryOptionsString,
 			Indent+multipleOptionsMultipleArgsLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple options multiple aliases", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("multiple options multiple aliases", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-options-multiple-aliases %s\n\nOptions:\n%s\n",
 			Indent,
 			summaryOptionsString,
 			Indent+multipleOptionsMultipleAliasesString,
 		),
 	}.assertString())
-	t.Run("multiple options multiple aliases description", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("multiple options multiple aliases description", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-options-multiple-aliases-description %s\n\nOptions:\n%s\n",
 			Indent,
 			summaryOptionsString,
 			Indent+multipleOptionsMultipleAliasesDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple options multiple aliases long description", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("multiple options multiple aliases long description", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-options-multiple-aliases-long-description %s\n\nOptions:\n%s\n",
 			Indent,
 			summaryOptionsString,
 			Indent+multipleOptionsMultipleAliasesLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple options multiple aliases single arg", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("multiple options multiple aliases single arg", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-options-multiple-aliases-single-arg %s\n\nOptions:\n%s\n",
 			Indent,
 			summaryOptionsString,
 			Indent+multipleOptionsMultipleAliasesSingleArgString,
 		),
 	}.assertString())
-	t.Run("multiple options multiple aliases single arg description", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("multiple options multiple aliases single arg description", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-options-multiple-aliases-single-arg-description %s\n\nOptions:\n%s\n",
 			Indent,
 			summaryOptionsString,
 			Indent+multipleOptionsMultipleAliasesSingleArgDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple options multiple aliases single arg long description", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("multiple options multiple aliases single arg long description", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-options-multiple-aliases-single-arg-long-description %s\n\nOptions:\n%s\n",
 			Indent,
 			summaryOptionsString,
 			Indent+multipleOptionsMultipleAliasesSingleArgLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple options multiple aliases multiple args", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("multiple options multiple aliases multiple args", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-options-multiple-aliases-multiple-args %s\n\nOptions:\n%s\n",
 			Indent,
 			summaryOptionsString,
 			Indent+multipleOptionsMultipleAliasesMultipleArgsString,
 		),
 	}.assertString())
-	t.Run("multiple options multiple aliases multiple args description", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("multiple options multiple aliases multiple args description", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-options-multiple-aliases-multiple-args-description %s\n\nOptions:\n%s\n",
 			Indent,
 			summaryOptionsString,
 			Indent+multipleOptionsMultipleAliasesMultipleArgsDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple options multiple aliases multiple args long description", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("multiple options multiple aliases multiple args long description", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-options-multiple-aliases-multiple-args-long-description %s\n\nOptions:\n%s\n",
 			Indent,
 			summaryOptionsString,
 			Indent+multipleOptionsMultipleAliasesMultipleArgsLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("single command", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("single command", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-command %s\n\n%s\n\nCommands:\n%s\n",
 			Indent,
 			summaryCommandsString,
@@ -1063,8 +1063,8 @@ func TestUsageGlobal(t *testing.T) {
 			Indent+singleCommandString,
 		),
 	}.assertString())
-	t.Run("single command description", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("single command description", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-command-description %s\n\n%s\n\nCommands:\n%s\n",
 			Indent,
 			summaryCommandsString,
@@ -1072,8 +1072,8 @@ func TestUsageGlobal(t *testing.T) {
 			Indent+singleCommandDescriptionString,
 		),
 	}.assertString())
-	t.Run("single command long description", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("single command long description", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-command-long-description %s\n\n%s\n\nCommands:\n%s\n",
 			Indent,
 			summaryCommandsString,
@@ -1081,8 +1081,8 @@ func TestUsageGlobal(t *testing.T) {
 			Indent+singleCommandLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("single command single arg", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("single command single arg", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-command-single-arg %s %s\n\n%s\n\nCommands:\n%s\n",
 			Indent,
 			summaryCommandsString,
@@ -1091,8 +1091,8 @@ func TestUsageGlobal(t *testing.T) {
 			Indent+singleCommandSingleArgString,
 		),
 	}.assertString())
-	t.Run("single command single arg description", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("single command single arg description", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-command-single-arg-description %s %s\n\n%s\n\nCommands:\n%s\n",
 			Indent,
 			summaryCommandsString,
@@ -1101,8 +1101,8 @@ func TestUsageGlobal(t *testing.T) {
 			Indent+singleCommandSingleArgDescriptionString,
 		),
 	}.assertString())
-	t.Run("single command single arg long description", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("single command single arg long description", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-command-single-arg-long-description %s %s\n\n%s\n\nCommands:\n%s\n",
 			Indent,
 			summaryCommandsString,
@@ -1111,8 +1111,8 @@ func TestUsageGlobal(t *testing.T) {
 			Indent+singleCommandSingleArgLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("single command multiple args", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("single command multiple args", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-command-multiple-args %s %s\n\n%s\n\nCommands:\n%s\n",
 			Indent,
 			summaryCommandsString,
@@ -1121,8 +1121,8 @@ func TestUsageGlobal(t *testing.T) {
 			Indent+singleCommandMultipleArgsString,
 		),
 	}.assertString())
-	t.Run("single command multiple args description", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("single command multiple args description", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-command-multiple-args-description %s %s\n\n%s\n\nCommands:\n%s\n",
 			Indent,
 			summaryCommandsString,
@@ -1131,8 +1131,8 @@ func TestUsageGlobal(t *testing.T) {
 			Indent+singleCommandMultipleArgsDescriptionString,
 		),
 	}.assertString())
-	t.Run("single command multiple args long description", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("single command multiple args long description", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-command-multiple-args-long-description %s %s\n\n%s\n\nCommands:\n%s\n",
 			Indent,
 			summaryCommandsString,
@@ -1141,8 +1141,8 @@ func TestUsageGlobal(t *testing.T) {
 			Indent+singleCommandMultipleArgsLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple commands", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("multiple commands", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-commands %s\n\n%s\n\nCommands:\n%s\n",
 			Indent,
 			summaryCommandsString,
@@ -1150,8 +1150,8 @@ func TestUsageGlobal(t *testing.T) {
 			Indent+multipleCommandsString,
 		),
 	}.assertString())
-	t.Run("multiple commands description", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("multiple commands description", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-commands-description %s\n\n%s\n\nCommands:\n%s\n",
 			Indent,
 			summaryCommandsString,
@@ -1159,8 +1159,8 @@ func TestUsageGlobal(t *testing.T) {
 			Indent+multipleCommandsDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple commands long description", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("multiple commands long description", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-commands-long-description %s\n\n%s\n\nCommands:\n%s\n",
 			Indent,
 			summaryCommandsString,
@@ -1168,8 +1168,8 @@ func TestUsageGlobal(t *testing.T) {
 			Indent+multipleCommandsLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple commands single arg", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("multiple commands single arg", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-commands-single-arg %s %s\n\n%s\n\nCommands:\n%s\n",
 			Indent,
 			summaryCommandsString,
@@ -1178,8 +1178,8 @@ func TestUsageGlobal(t *testing.T) {
 			Indent+multipleCommandsSingleArgString,
 		),
 	}.assertString())
-	t.Run("multiple commands single arg description", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("multiple commands single arg description", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-commands-single-arg-description %s %s\n\n%s\n\nCommands:\n%s\n",
 			Indent,
 			summaryCommandsString,
@@ -1188,8 +1188,8 @@ func TestUsageGlobal(t *testing.T) {
 			Indent+multipleCommandsSingleArgDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple commands single arg long description", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("multiple commands single arg long description", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-commands-single-arg-long-description %s %s\n\n%s\n\nCommands:\n%s\n",
 			Indent,
 			summaryCommandsString,
@@ -1198,8 +1198,8 @@ func TestUsageGlobal(t *testing.T) {
 			Indent+multipleCommandsSingleArgLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple commands multiple args", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("multiple commands multiple args", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-commands-multiple-args %s %s\n\n%s\n\nCommands:\n%s\n",
 			Indent,
 			summaryCommandsString,
@@ -1208,8 +1208,8 @@ func TestUsageGlobal(t *testing.T) {
 			Indent+multipleCommandsMultipleArgsString,
 		),
 	}.assertString())
-	t.Run("multiple commands multiple args description", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("multiple commands multiple args description", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-commands-multiple-args-description %s %s\n\n%s\n\nCommands:\n%s\n",
 			Indent,
 			summaryCommandsString,
@@ -1218,8 +1218,8 @@ func TestUsageGlobal(t *testing.T) {
 			Indent+multipleCommandsMultipleArgsDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple commands multiple args long description", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("multiple commands multiple args long description", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-commands-multiple-args-long-description %s %s\n\n%s\n\nCommands:\n%s\n",
 			Indent,
 			summaryCommandsString,
@@ -1228,8 +1228,8 @@ func TestUsageGlobal(t *testing.T) {
 			Indent+multipleCommandsMultipleArgsLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("single option single global arg", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("single option single global arg", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-option-single-global-arg %s %s\n\nOptions:\n%s\n",
 			Indent,
 			summaryOptionsString,
@@ -1237,8 +1237,8 @@ func TestUsageGlobal(t *testing.T) {
 			Indent+singleOptionLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("single option multiple global args", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("single option multiple global args", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-option-multiple-global-args %s %s\n\nOptions:\n%s\n",
 			Indent,
 			summaryOptionsString,
@@ -1246,8 +1246,8 @@ func TestUsageGlobal(t *testing.T) {
 			Indent+singleOptionLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("single option single command", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("single option single command", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-option-single-command %s %s\n\n%s\n\nOptions:\n%s\n\nCommands:\n%s\n",
 			Indent,
 			summaryCommandsString,
@@ -1257,8 +1257,8 @@ func TestUsageGlobal(t *testing.T) {
 			Indent+singleCommandLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("single option single command single command arg", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("single option single command single command arg", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-option-single-command-single-command-arg %s %s %s\n\n%s\n\nOptions:\n%s\n\nCommands:\n%s\n",
 			Indent,
 			summaryCommandsString,
@@ -1269,8 +1269,8 @@ func TestUsageGlobal(t *testing.T) {
 			Indent+singleCommandSingleArgLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("single option single command multiple command args", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("single option single command multiple command args", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-option-single-command-multiple-command-args %s %s %s\n\n%s\n\nOptions:\n%s\n\nCommands:\n%s\n",
 			Indent,
 			summaryCommandsString,
@@ -1281,8 +1281,8 @@ func TestUsageGlobal(t *testing.T) {
 			Indent+singleCommandMultipleArgsLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("single option multiple commands", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("single option multiple commands", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-option-multiple-commands %s %s\n\n%s\n\nOptions:\n%s\n\nCommands:\n%s\n",
 			Indent,
 			summaryCommandsString,
@@ -1292,8 +1292,8 @@ func TestUsageGlobal(t *testing.T) {
 			Indent+multipleCommandsLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("single option multiple commands single command arg", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("single option multiple commands single command arg", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-option-multiple-commands-single-command-arg %s %s %s\n\n%s\n\nOptions:\n%s\n\nCommands:\n%s\n",
 			Indent,
 			summaryCommandsString,
@@ -1304,8 +1304,8 @@ func TestUsageGlobal(t *testing.T) {
 			Indent+multipleCommandsSingleArgLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("single option multiple commands multiple command args", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("single option multiple commands multiple command args", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-option-multiple-commands-multiple-command-args %s %s %s\n\n%s\n\nOptions:\n%s\n\nCommands:\n%s\n",
 			Indent,
 			summaryCommandsString,
@@ -1316,8 +1316,8 @@ func TestUsageGlobal(t *testing.T) {
 			Indent+multipleCommandsMultipleArgsLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple options single global arg", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("multiple options single global arg", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-options-single-global-arg %s %s\n\nOptions:\n%s\n",
 			Indent,
 			summaryOptionsString,
@@ -1325,8 +1325,8 @@ func TestUsageGlobal(t *testing.T) {
 			Indent+multipleOptionsLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple options multiple global args", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("multiple options multiple global args", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-options-multiple-global-args %s %s\n\nOptions:\n%s\n",
 			Indent,
 			summaryOptionsString,
@@ -1334,8 +1334,8 @@ func TestUsageGlobal(t *testing.T) {
 			Indent+multipleOptionsLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple options single command", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("multiple options single command", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-options-single-command %s %s\n\n%s\n\nOptions:\n%s\n\nCommands:\n%s\n",
 			Indent,
 			summaryCommandsString,
@@ -1345,8 +1345,8 @@ func TestUsageGlobal(t *testing.T) {
 			Indent+singleCommandLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple options single command single command arg", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("multiple options single command single command arg", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-options-single-command-single-command-arg %s %s %s\n\n%s\n\nOptions:\n%s\n\nCommands:\n%s\n",
 			Indent,
 			summaryCommandsString,
@@ -1357,8 +1357,8 @@ func TestUsageGlobal(t *testing.T) {
 			Indent+singleCommandSingleArgLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple options single command multiple command args", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("multiple options single command multiple command args", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-options-single-command-multiple-command-args %s %s %s\n\n%s\n\nOptions:\n%s\n\nCommands:\n%s\n",
 			Indent,
 			summaryCommandsString,
@@ -1369,8 +1369,8 @@ func TestUsageGlobal(t *testing.T) {
 			Indent+singleCommandMultipleArgsLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple options multiple commands", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("multiple options multiple commands", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-options-multiple-commands %s %s\n\n%s\n\nOptions:\n%s\n\nCommands:\n%s\n",
 			Indent,
 			summaryCommandsString,
@@ -1380,8 +1380,8 @@ func TestUsageGlobal(t *testing.T) {
 			Indent+multipleCommandsLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple options multiple commands single command arg", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("multiple options multiple commands single command arg", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-options-multiple-commands-single-command-arg %s %s %s\n\n%s\n\nOptions:\n%s\n\nCommands:\n%s\n",
 			Indent,
 			summaryCommandsString,
@@ -1392,8 +1392,8 @@ func TestUsageGlobal(t *testing.T) {
 			Indent+multipleCommandsSingleArgLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple options multiple commands multiple command args", usageGlobalTester{
-		oGlobal: fmt.Sprintf(
+	t.Run("multiple options multiple commands multiple command args", usageUsageTester{
+		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-options-multiple-commands-multiple-command-args %s %s %s\n\n%s\n\nOptions:\n%s\n\nCommands:\n%s\n",
 			Indent,
 			summaryCommandsString,

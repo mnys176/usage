@@ -65,7 +65,7 @@ func (u *usage) AddEntry(e *entry) error {
 	return nil
 }
 
-func (u usage) Global() string {
+func (u usage) Usage() string {
 	hasEntries, hasOptions, hasArgs := len(u.entries) > 0, len(u.options) > 0, len(u.args) > 0
 
 	var usage strings.Builder

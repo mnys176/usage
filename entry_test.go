@@ -7,6 +7,23 @@ import (
 	"testing"
 )
 
+func stringToEntryNameAndArgs(str string) (string, argSlice) {
+	splitter := regexp.MustCompile(`[\n:]\n` + Indent)
+	summaryString := strings.TrimSpace(splitter.Split(str, 3)[1])
+
+	var name, argString string
+	if parts := strings.SplitN(summaryString, " ", 3); len(parts) == 3 {
+		name, argString = parts[1], parts[2]
+	} else if len(parts) == 2 {
+		name = parts[1]
+	}
+
+	if argsStart := strings.IndexRune(argString, '<'); argsStart > -1 {
+		return name, newArgSlice(argString[argsStart:])
+	}
+	return name, newArgSlice("")
+}
+
 func stringToEntry(str string) *entry {
 	subcommandAndArgs, choppedDescription, _ := strings.Cut(str, "\n"+strings.Repeat(Indent, 2))
 	subcommandAndArgs = strings.TrimPrefix(subcommandAndArgs, Indent)
@@ -217,6 +234,47 @@ func (tester entryStringTester) assertString() func(*testing.T) {
 	}
 }
 
+type entryUsageTester struct {
+	oUsage string
+}
+
+func (tester entryUsageTester) assertString() func(*testing.T) {
+	return func(t *testing.T) {
+		summaryStart := strings.Index(tester.oUsage, "Usage:")
+		optionsStart := strings.Index(tester.oUsage, "Options:")
+
+		var name string
+		var args argSlice
+		if summaryStart > -1 {
+			var summarySection string
+			if optionsStart > -1 {
+				summarySection = tester.oUsage[summaryStart:optionsStart]
+			} else {
+				summarySection = tester.oUsage[summaryStart:]
+			}
+			name, args = stringToEntryNameAndArgs(summarySection)
+		}
+
+		var sampleOptions []option
+		if optionsStart > -1 {
+			optionsSection := tester.oUsage[optionsStart:]
+			sampleOptions = stringToMultipleOptions(optionsSection)
+		} else {
+			sampleOptions = make([]option, 0)
+		}
+
+		sampleEntry := entry{
+			name:    name,
+			options: sampleOptions,
+			args:    args,
+		}
+
+		if got := sampleEntry.Usage(); got != tester.oUsage {
+			t.Errorf("string is %q but should be %q", got, tester.oUsage)
+		}
+	}
+}
+
 func TestEntryArgs(t *testing.T) {
 	t.Run("baseline", entryArgsTester{
 		oArgs: []string{"foo"},
@@ -423,6 +481,498 @@ func TestEntryString(t *testing.T) {
 			Indent,
 			strings.Repeat(Indent, 2),
 			longDescription,
+		),
+	}.assertString())
+}
+
+func TestEntryUsage(t *testing.T) {
+	const dblIndent string = Indent + Indent
+	const longDescription string = "some very long description that will definitely push the limits\n" +
+		Indent + Indent + "of the screen size (it is very likely that this will cause the\n" +
+		Indent + Indent + "line break at 64 characters)\n" +
+		Indent + Indent + "\n" +
+		Indent + Indent + "here's another paragraph just in case with a very long word\n" +
+		Indent + Indent + "between these brackets > < that will not appear in the final\n" +
+		Indent + Indent + "output because it is longer than a line"
+
+	const (
+		summaryOptionsString string = "[options]"
+
+		arg1, arg2, arg3 string = "<foo>", "<bar>", "<baz>"
+
+		option1SingleAlias     string = "--foo"
+		option2SingleAlias     string = "--bar"
+		option3SingleAlias     string = "--baz"
+		option1MultipleAliases string = "--foo, -f"
+		option2MultipleAliases string = "--bar, -b"
+		option3MultipleAliases string = "--baz, -z"
+	)
+
+	var (
+		singleArgString    string = arg1
+		multipleArgsString string = fmt.Sprintf("%s %s %s", arg1, arg2, arg3)
+	)
+
+	var (
+		singleOptionString                                           string = option1SingleAlias
+		singleOptionDescriptionString                                string = fmt.Sprintf("%s\n%ssome description", option1SingleAlias, dblIndent)
+		singleOptionLongDescriptionString                            string = fmt.Sprintf("%s\n%s%s", option1SingleAlias, dblIndent, longDescription)
+		singleOptionSingleArgString                                  string = fmt.Sprintf("%s %s", option1SingleAlias, singleArgString)
+		singleOptionSingleArgDescriptionString                       string = fmt.Sprintf("%s %s\n%ssome description", option1SingleAlias, singleArgString, dblIndent)
+		singleOptionSingleArgLongDescriptionString                   string = fmt.Sprintf("%s %s\n%s%s", option1SingleAlias, singleArgString, dblIndent, longDescription)
+		singleOptionMultipleArgsString                               string = fmt.Sprintf("%s %s", option1SingleAlias, multipleArgsString)
+		singleOptionMultipleArgsDescriptionString                    string = fmt.Sprintf("%s %s\n%ssome description", option1SingleAlias, multipleArgsString, dblIndent)
+		singleOptionMultipleArgsLongDescriptionString                string = fmt.Sprintf("%s %s\n%s%s", option1SingleAlias, multipleArgsString, dblIndent, longDescription)
+		singleOptionMultipleAliasesString                            string = option1MultipleAliases
+		singleOptionMultipleAliasesDescriptionString                 string = fmt.Sprintf("%s\n%ssome description", option1MultipleAliases, dblIndent)
+		singleOptionMultipleAliasesLongDescriptionString             string = fmt.Sprintf("%s\n%s%s", option1MultipleAliases, dblIndent, longDescription)
+		singleOptionMultipleAliasesSingleArgString                   string = fmt.Sprintf("%s %s", option1MultipleAliases, singleArgString)
+		singleOptionMultipleAliasesSingleArgDescriptionString        string = fmt.Sprintf("%s %s\n%ssome description", option1MultipleAliases, singleArgString, dblIndent)
+		singleOptionMultipleAliasesSingleArgLongDescriptionString    string = fmt.Sprintf("%s %s\n%s%s", option1MultipleAliases, singleArgString, dblIndent, longDescription)
+		singleOptionMultipleAliasesMultipleArgsString                string = fmt.Sprintf("%s %s", option1MultipleAliases, multipleArgsString)
+		singleOptionMultipleAliasesMultipleArgsDescriptionString     string = fmt.Sprintf("%s %s\n%ssome description", option1MultipleAliases, multipleArgsString, dblIndent)
+		singleOptionMultipleAliasesMultipleArgsLongDescriptionString string = fmt.Sprintf("%s %s\n%s%s", option1MultipleAliases, multipleArgsString, dblIndent, longDescription)
+		multipleOptionsString                                        string = fmt.Sprintf(
+			"%s\n\n%s\n\n%s",
+			option1SingleAlias,
+			Indent+option2SingleAlias,
+			Indent+option3SingleAlias,
+		)
+		multipleOptionsDescriptionString string = fmt.Sprintf(
+			"%s\n\n%s\n\n%s",
+			fmt.Sprintf("%s\n%ssome description", option1SingleAlias, dblIndent),
+			Indent+fmt.Sprintf("%s\n%ssome description", option2SingleAlias, dblIndent),
+			Indent+fmt.Sprintf("%s\n%ssome description", option3SingleAlias, dblIndent),
+		)
+		multipleOptionsLongDescriptionString string = fmt.Sprintf(
+			"%s\n\n%s\n\n%s",
+			fmt.Sprintf("%s\n%s%s", option1SingleAlias, dblIndent, longDescription),
+			Indent+fmt.Sprintf("%s\n%s%s", option2SingleAlias, dblIndent, longDescription),
+			Indent+fmt.Sprintf("%s\n%s%s", option3SingleAlias, dblIndent, longDescription),
+		)
+		multipleOptionsSingleArgString string = fmt.Sprintf(
+			"%s\n\n%s\n\n%s",
+			fmt.Sprintf("%s %s", option1SingleAlias, singleArgString),
+			Indent+fmt.Sprintf("%s %s", option2SingleAlias, singleArgString),
+			Indent+fmt.Sprintf("%s %s", option3SingleAlias, singleArgString),
+		)
+		multipleOptionsSingleArgDescriptionString string = fmt.Sprintf(
+			"%s\n\n%s\n\n%s",
+			fmt.Sprintf("%s %s\n%ssome description", option1SingleAlias, singleArgString, dblIndent),
+			Indent+fmt.Sprintf("%s %s\n%ssome description", option2SingleAlias, singleArgString, dblIndent),
+			Indent+fmt.Sprintf("%s %s\n%ssome description", option3SingleAlias, singleArgString, dblIndent),
+		)
+		multipleOptionsSingleArgLongDescriptionString string = fmt.Sprintf(
+			"%s\n\n%s\n\n%s",
+			fmt.Sprintf("%s %s\n%s%s", option1SingleAlias, singleArgString, dblIndent, longDescription),
+			Indent+fmt.Sprintf("%s %s\n%s%s", option2SingleAlias, singleArgString, dblIndent, longDescription),
+			Indent+fmt.Sprintf("%s %s\n%s%s", option3SingleAlias, singleArgString, dblIndent, longDescription),
+		)
+		multipleOptionsMultipleArgsString string = fmt.Sprintf(
+			"%s\n\n%s\n\n%s",
+			fmt.Sprintf("%s %s", option1SingleAlias, multipleArgsString),
+			Indent+fmt.Sprintf("%s %s", option2SingleAlias, multipleArgsString),
+			Indent+fmt.Sprintf("%s %s", option3SingleAlias, multipleArgsString),
+		)
+		multipleOptionsMultipleArgsDescriptionString string = fmt.Sprintf(
+			"%s\n\n%s\n\n%s",
+			fmt.Sprintf("%s %s\n%ssome description", option1SingleAlias, multipleArgsString, dblIndent),
+			Indent+fmt.Sprintf("%s %s\n%ssome description", option2SingleAlias, multipleArgsString, dblIndent),
+			Indent+fmt.Sprintf("%s %s\n%ssome description", option3SingleAlias, multipleArgsString, dblIndent),
+		)
+		multipleOptionsMultipleArgsLongDescriptionString string = fmt.Sprintf(
+			"%s\n\n%s\n\n%s",
+			fmt.Sprintf("%s %s\n%s%s", option1SingleAlias, multipleArgsString, dblIndent, longDescription),
+			Indent+fmt.Sprintf("%s %s\n%s%s", option2SingleAlias, multipleArgsString, dblIndent, longDescription),
+			Indent+fmt.Sprintf("%s %s\n%s%s", option3SingleAlias, multipleArgsString, dblIndent, longDescription),
+		)
+		multipleOptionsMultipleAliasesString string = fmt.Sprintf(
+			"%s\n\n%s\n\n%s",
+			option1MultipleAliases,
+			Indent+option2MultipleAliases,
+			Indent+option3MultipleAliases,
+		)
+		multipleOptionsMultipleAliasesDescriptionString string = fmt.Sprintf(
+			"%s\n\n%s\n\n%s",
+			fmt.Sprintf("%s\n%ssome description", option1MultipleAliases, dblIndent),
+			Indent+fmt.Sprintf("%s\n%ssome description", option2MultipleAliases, dblIndent),
+			Indent+fmt.Sprintf("%s\n%ssome description", option3MultipleAliases, dblIndent),
+		)
+		multipleOptionsMultipleAliasesLongDescriptionString string = fmt.Sprintf(
+			"%s\n\n%s\n\n%s",
+			fmt.Sprintf("%s\n%s%s", option1MultipleAliases, dblIndent, longDescription),
+			Indent+fmt.Sprintf("%s\n%s%s", option2MultipleAliases, dblIndent, longDescription),
+			Indent+fmt.Sprintf("%s\n%s%s", option3MultipleAliases, dblIndent, longDescription),
+		)
+		multipleOptionsMultipleAliasesSingleArgString string = fmt.Sprintf(
+			"%s\n\n%s\n\n%s",
+			fmt.Sprintf("%s %s", option1MultipleAliases, singleArgString),
+			Indent+fmt.Sprintf("%s %s", option2MultipleAliases, singleArgString),
+			Indent+fmt.Sprintf("%s %s", option3MultipleAliases, singleArgString),
+		)
+		multipleOptionsMultipleAliasesSingleArgDescriptionString string = fmt.Sprintf(
+			"%s\n\n%s\n\n%s",
+			fmt.Sprintf("%s %s\n%ssome description", option1MultipleAliases, singleArgString, dblIndent),
+			Indent+fmt.Sprintf("%s %s\n%ssome description", option2MultipleAliases, singleArgString, dblIndent),
+			Indent+fmt.Sprintf("%s %s\n%ssome description", option3MultipleAliases, singleArgString, dblIndent),
+		)
+		multipleOptionsMultipleAliasesSingleArgLongDescriptionString string = fmt.Sprintf(
+			"%s\n\n%s\n\n%s",
+			fmt.Sprintf("%s %s\n%s%s", option1MultipleAliases, singleArgString, dblIndent, longDescription),
+			Indent+fmt.Sprintf("%s %s\n%s%s", option2MultipleAliases, singleArgString, dblIndent, longDescription),
+			Indent+fmt.Sprintf("%s %s\n%s%s", option3MultipleAliases, singleArgString, dblIndent, longDescription),
+		)
+		multipleOptionsMultipleAliasesMultipleArgsString string = fmt.Sprintf(
+			"%s\n\n%s\n\n%s",
+			fmt.Sprintf("%s %s", option1MultipleAliases, multipleArgsString),
+			Indent+fmt.Sprintf("%s %s", option2MultipleAliases, multipleArgsString),
+			Indent+fmt.Sprintf("%s %s", option3MultipleAliases, multipleArgsString),
+		)
+		multipleOptionsMultipleAliasesMultipleArgsDescriptionString string = fmt.Sprintf(
+			"%s\n\n%s\n\n%s",
+			fmt.Sprintf("%s %s\n%ssome description", option1MultipleAliases, multipleArgsString, dblIndent),
+			Indent+fmt.Sprintf("%s %s\n%ssome description", option2MultipleAliases, multipleArgsString, dblIndent),
+			Indent+fmt.Sprintf("%s %s\n%ssome description", option3MultipleAliases, multipleArgsString, dblIndent),
+		)
+		multipleOptionsMultipleAliasesMultipleArgsLongDescriptionString string = fmt.Sprintf(
+			"%s\n\n%s\n\n%s",
+			fmt.Sprintf("%s %s\n%s%s", option1MultipleAliases, multipleArgsString, dblIndent, longDescription),
+			Indent+fmt.Sprintf("%s %s\n%s%s", option2MultipleAliases, multipleArgsString, dblIndent, longDescription),
+			Indent+fmt.Sprintf("%s %s\n%s%s", option3MultipleAliases, multipleArgsString, dblIndent, longDescription),
+		)
+	)
+
+	t.Run("baseline", entryUsageTester{
+		oUsage: fmt.Sprintf("Usage:\n%s%%s base\n", Indent),
+	}.assertString())
+	t.Run("single arg", entryUsageTester{
+		oUsage: fmt.Sprintf("Usage:\n%s%%s single-arg %s\n", Indent, singleArgString),
+	}.assertString())
+	t.Run("multiple args", entryUsageTester{
+		oUsage: fmt.Sprintf("Usage:\n%s%%s multiple-args %s\n", Indent, multipleArgsString),
+	}.assertString())
+	t.Run("single option", entryUsageTester{
+		oUsage: fmt.Sprintf(
+			"Usage:\n%s%%s single-option %s\n\nOptions:\n%s\n",
+			Indent,
+			summaryOptionsString,
+			Indent+singleOptionString,
+		),
+	}.assertString())
+	t.Run("single option description", entryUsageTester{
+		oUsage: fmt.Sprintf(
+			"Usage:\n%s%%s single-option-description %s\n\nOptions:\n%s\n",
+			Indent,
+			summaryOptionsString,
+			Indent+singleOptionDescriptionString,
+		),
+	}.assertString())
+	t.Run("single option long description", entryUsageTester{
+		oUsage: fmt.Sprintf(
+			"Usage:\n%s%%s single-option-long-description %s\n\nOptions:\n%s\n",
+			Indent,
+			summaryOptionsString,
+			Indent+singleOptionLongDescriptionString,
+		),
+	}.assertString())
+	t.Run("single option single arg", entryUsageTester{
+		oUsage: fmt.Sprintf(
+			"Usage:\n%s%%s single-option-single-arg %s\n\nOptions:\n%s\n",
+			Indent,
+			summaryOptionsString,
+			Indent+singleOptionSingleArgString,
+		),
+	}.assertString())
+	t.Run("single option single arg description", entryUsageTester{
+		oUsage: fmt.Sprintf(
+			"Usage:\n%s%%s single-option-single-arg-description %s\n\nOptions:\n%s\n",
+			Indent,
+			summaryOptionsString,
+			Indent+singleOptionSingleArgDescriptionString,
+		),
+	}.assertString())
+	t.Run("single option single arg long description", entryUsageTester{
+		oUsage: fmt.Sprintf(
+			"Usage:\n%s%%s single-option-single-arg-long-description %s\n\nOptions:\n%s\n",
+			Indent,
+			summaryOptionsString,
+			Indent+singleOptionSingleArgLongDescriptionString,
+		),
+	}.assertString())
+	t.Run("single option multiple args", entryUsageTester{
+		oUsage: fmt.Sprintf(
+			"Usage:\n%s%%s single-option-multiple-args %s\n\nOptions:\n%s\n",
+			Indent,
+			summaryOptionsString,
+			Indent+singleOptionMultipleArgsString,
+		),
+	}.assertString())
+	t.Run("single option multiple args description", entryUsageTester{
+		oUsage: fmt.Sprintf(
+			"Usage:\n%s%%s single-option-multiple-args-description %s\n\nOptions:\n%s\n",
+			Indent,
+			summaryOptionsString,
+			Indent+singleOptionMultipleArgsDescriptionString,
+		),
+	}.assertString())
+	t.Run("single option multiple args long description", entryUsageTester{
+		oUsage: fmt.Sprintf(
+			"Usage:\n%s%%s single-option-multiple-args-long-description %s\n\nOptions:\n%s\n",
+			Indent,
+			summaryOptionsString,
+			Indent+singleOptionMultipleArgsLongDescriptionString,
+		),
+	}.assertString())
+	t.Run("single option multiple aliases", entryUsageTester{
+		oUsage: fmt.Sprintf(
+			"Usage:\n%s%%s single-option-multiple-aliases %s\n\nOptions:\n%s\n",
+			Indent,
+			summaryOptionsString,
+			Indent+singleOptionMultipleAliasesString,
+		),
+	}.assertString())
+	t.Run("single option multiple aliases description", entryUsageTester{
+		oUsage: fmt.Sprintf(
+			"Usage:\n%s%%s single-option-multiple-aliases-description %s\n\nOptions:\n%s\n",
+			Indent,
+			summaryOptionsString,
+			Indent+singleOptionMultipleAliasesDescriptionString,
+		),
+	}.assertString())
+	t.Run("single option multiple aliases long description", entryUsageTester{
+		oUsage: fmt.Sprintf(
+			"Usage:\n%s%%s single-option-multiple-aliases-long-description %s\n\nOptions:\n%s\n",
+			Indent,
+			summaryOptionsString,
+			Indent+singleOptionMultipleAliasesLongDescriptionString,
+		),
+	}.assertString())
+	t.Run("single option multiple aliases single arg", entryUsageTester{
+		oUsage: fmt.Sprintf(
+			"Usage:\n%s%%s single-option-multiple-aliases-single-arg %s\n\nOptions:\n%s\n",
+			Indent,
+			summaryOptionsString,
+			Indent+singleOptionMultipleAliasesSingleArgString,
+		),
+	}.assertString())
+	t.Run("single option multiple aliases single arg description", entryUsageTester{
+		oUsage: fmt.Sprintf(
+			"Usage:\n%s%%s single-option-multiple-aliases-single-arg-description %s\n\nOptions:\n%s\n",
+			Indent,
+			summaryOptionsString,
+			Indent+singleOptionMultipleAliasesSingleArgDescriptionString,
+		),
+	}.assertString())
+	t.Run("single option multiple aliases single arg long description", entryUsageTester{
+		oUsage: fmt.Sprintf(
+			"Usage:\n%s%%s single-option-multiple-aliases-single-arg-long-description %s\n\nOptions:\n%s\n",
+			Indent,
+			summaryOptionsString,
+			Indent+singleOptionMultipleAliasesSingleArgLongDescriptionString,
+		),
+	}.assertString())
+	t.Run("single option multiple aliases multiple args", entryUsageTester{
+		oUsage: fmt.Sprintf(
+			"Usage:\n%s%%s single-option-multiple-aliases-multiple-args %s\n\nOptions:\n%s\n",
+			Indent,
+			summaryOptionsString,
+			Indent+singleOptionMultipleAliasesMultipleArgsString,
+		),
+	}.assertString())
+	t.Run("single option multiple aliases multiple args description", entryUsageTester{
+		oUsage: fmt.Sprintf(
+			"Usage:\n%s%%s single-option-multiple-aliases-multiple-args-description %s\n\nOptions:\n%s\n",
+			Indent,
+			summaryOptionsString,
+			Indent+singleOptionMultipleAliasesMultipleArgsDescriptionString,
+		),
+	}.assertString())
+	t.Run("single option multiple aliases multiple args long description", entryUsageTester{
+		oUsage: fmt.Sprintf(
+			"Usage:\n%s%%s single-option-multiple-aliases-multiple-args-long-description %s\n\nOptions:\n%s\n",
+			Indent,
+			summaryOptionsString,
+			Indent+singleOptionMultipleAliasesMultipleArgsLongDescriptionString,
+		),
+	}.assertString())
+	t.Run("multiple options", entryUsageTester{
+		oUsage: fmt.Sprintf(
+			"Usage:\n%s%%s multiple-options %s\n\nOptions:\n%s\n",
+			Indent,
+			summaryOptionsString,
+			Indent+multipleOptionsString,
+		),
+	}.assertString())
+	t.Run("multiple options description", entryUsageTester{
+		oUsage: fmt.Sprintf(
+			"Usage:\n%s%%s multiple-options-description %s\n\nOptions:\n%s\n",
+			Indent,
+			summaryOptionsString,
+			Indent+multipleOptionsDescriptionString,
+		),
+	}.assertString())
+	t.Run("multiple options long description", entryUsageTester{
+		oUsage: fmt.Sprintf(
+			"Usage:\n%s%%s multiple-options-long-description %s\n\nOptions:\n%s\n",
+			Indent,
+			summaryOptionsString,
+			Indent+multipleOptionsLongDescriptionString,
+		),
+	}.assertString())
+	t.Run("multiple options single arg", entryUsageTester{
+		oUsage: fmt.Sprintf(
+			"Usage:\n%s%%s multiple-options-single-arg %s\n\nOptions:\n%s\n",
+			Indent,
+			summaryOptionsString,
+			Indent+multipleOptionsSingleArgString,
+		),
+	}.assertString())
+	t.Run("multiple options single arg description", entryUsageTester{
+		oUsage: fmt.Sprintf(
+			"Usage:\n%s%%s multiple-options-single-arg-description %s\n\nOptions:\n%s\n",
+			Indent,
+			summaryOptionsString,
+			Indent+multipleOptionsSingleArgDescriptionString,
+		),
+	}.assertString())
+	t.Run("multiple options single arg long description", entryUsageTester{
+		oUsage: fmt.Sprintf(
+			"Usage:\n%s%%s multiple-options-single-arg-long-description %s\n\nOptions:\n%s\n",
+			Indent,
+			summaryOptionsString,
+			Indent+multipleOptionsSingleArgLongDescriptionString,
+		),
+	}.assertString())
+	t.Run("multiple options multiple args", entryUsageTester{
+		oUsage: fmt.Sprintf(
+			"Usage:\n%s%%s multiple-options-multiple-args %s\n\nOptions:\n%s\n",
+			Indent,
+			summaryOptionsString,
+			Indent+multipleOptionsMultipleArgsString,
+		),
+	}.assertString())
+	t.Run("multiple options multiple args description", entryUsageTester{
+		oUsage: fmt.Sprintf(
+			"Usage:\n%s%%s multiple-options-multiple-args-description %s\n\nOptions:\n%s\n",
+			Indent,
+			summaryOptionsString,
+			Indent+multipleOptionsMultipleArgsDescriptionString,
+		),
+	}.assertString())
+	t.Run("multiple options multiple args long description", entryUsageTester{
+		oUsage: fmt.Sprintf(
+			"Usage:\n%s%%s multiple-options-multiple-args-long-description %s\n\nOptions:\n%s\n",
+			Indent,
+			summaryOptionsString,
+			Indent+multipleOptionsMultipleArgsLongDescriptionString,
+		),
+	}.assertString())
+	t.Run("multiple options multiple aliases", entryUsageTester{
+		oUsage: fmt.Sprintf(
+			"Usage:\n%s%%s multiple-options-multiple-aliases %s\n\nOptions:\n%s\n",
+			Indent,
+			summaryOptionsString,
+			Indent+multipleOptionsMultipleAliasesString,
+		),
+	}.assertString())
+	t.Run("multiple options multiple aliases description", entryUsageTester{
+		oUsage: fmt.Sprintf(
+			"Usage:\n%s%%s multiple-options-multiple-aliases-description %s\n\nOptions:\n%s\n",
+			Indent,
+			summaryOptionsString,
+			Indent+multipleOptionsMultipleAliasesDescriptionString,
+		),
+	}.assertString())
+	t.Run("multiple options multiple aliases long description", entryUsageTester{
+		oUsage: fmt.Sprintf(
+			"Usage:\n%s%%s multiple-options-multiple-aliases-long-description %s\n\nOptions:\n%s\n",
+			Indent,
+			summaryOptionsString,
+			Indent+multipleOptionsMultipleAliasesLongDescriptionString,
+		),
+	}.assertString())
+	t.Run("multiple options multiple aliases single arg", entryUsageTester{
+		oUsage: fmt.Sprintf(
+			"Usage:\n%s%%s multiple-options-multiple-aliases-single-arg %s\n\nOptions:\n%s\n",
+			Indent,
+			summaryOptionsString,
+			Indent+multipleOptionsMultipleAliasesSingleArgString,
+		),
+	}.assertString())
+	t.Run("multiple options multiple aliases single arg description", entryUsageTester{
+		oUsage: fmt.Sprintf(
+			"Usage:\n%s%%s multiple-options-multiple-aliases-single-arg-description %s\n\nOptions:\n%s\n",
+			Indent,
+			summaryOptionsString,
+			Indent+multipleOptionsMultipleAliasesSingleArgDescriptionString,
+		),
+	}.assertString())
+	t.Run("multiple options multiple aliases single arg long description", entryUsageTester{
+		oUsage: fmt.Sprintf(
+			"Usage:\n%s%%s multiple-options-multiple-aliases-single-arg-long-description %s\n\nOptions:\n%s\n",
+			Indent,
+			summaryOptionsString,
+			Indent+multipleOptionsMultipleAliasesSingleArgLongDescriptionString,
+		),
+	}.assertString())
+	t.Run("multiple options multiple aliases multiple args", entryUsageTester{
+		oUsage: fmt.Sprintf(
+			"Usage:\n%s%%s multiple-options-multiple-aliases-multiple-args %s\n\nOptions:\n%s\n",
+			Indent,
+			summaryOptionsString,
+			Indent+multipleOptionsMultipleAliasesMultipleArgsString,
+		),
+	}.assertString())
+	t.Run("multiple options multiple aliases multiple args description", entryUsageTester{
+		oUsage: fmt.Sprintf(
+			"Usage:\n%s%%s multiple-options-multiple-aliases-multiple-args-description %s\n\nOptions:\n%s\n",
+			Indent,
+			summaryOptionsString,
+			Indent+multipleOptionsMultipleAliasesMultipleArgsDescriptionString,
+		),
+	}.assertString())
+	t.Run("multiple options multiple aliases multiple args long description", entryUsageTester{
+		oUsage: fmt.Sprintf(
+			"Usage:\n%s%%s multiple-options-multiple-aliases-multiple-args-long-description %s\n\nOptions:\n%s\n",
+			Indent,
+			summaryOptionsString,
+			Indent+multipleOptionsMultipleAliasesMultipleArgsLongDescriptionString,
+		),
+	}.assertString())
+	t.Run("single option single global arg", entryUsageTester{
+		oUsage: fmt.Sprintf(
+			"Usage:\n%s%%s single-option-single-global-arg %s %s\n\nOptions:\n%s\n",
+			Indent,
+			summaryOptionsString,
+			singleArgString,
+			Indent+singleOptionSingleArgLongDescriptionString,
+		),
+	}.assertString())
+	t.Run("single option multiple global args", entryUsageTester{
+		oUsage: fmt.Sprintf(
+			"Usage:\n%s%%s single-option-multiple-global-args %s %s\n\nOptions:\n%s\n",
+			Indent,
+			summaryOptionsString,
+			multipleArgsString,
+			Indent+singleOptionMultipleArgsLongDescriptionString,
+		),
+	}.assertString())
+	t.Run("multiple options single global arg", entryUsageTester{
+		oUsage: fmt.Sprintf(
+			"Usage:\n%s%%s multiple-options-single-global-arg %s %s\n\nOptions:\n%s\n",
+			Indent,
+			summaryOptionsString,
+			singleArgString,
+			Indent+multipleOptionsSingleArgLongDescriptionString,
+		),
+	}.assertString())
+	t.Run("multiple options multiple global args", entryUsageTester{
+		oUsage: fmt.Sprintf(
+			"Usage:\n%s%%s multiple-options-multiple-global-args %s %s\n\nOptions:\n%s\n",
+			Indent,
+			summaryOptionsString,
+			multipleArgsString,
+			Indent+multipleOptionsMultipleArgsLongDescriptionString,
 		),
 	}.assertString())
 }

@@ -1,6 +1,7 @@
 package usage
 
 import (
+	"fmt"
 	"strings"
 )
 
@@ -41,6 +42,31 @@ func (e *entry) SetName(name string) error {
 	}
 	e.name = name
 	return nil
+}
+
+func (e entry) Usage() string {
+	hasOptions, hasArgs := len(e.options) > 0, len(e.args) > 0
+
+	var usage strings.Builder
+	usage.WriteString("Usage:\n" + Indent + "%s ")
+
+	var summary strings.Builder
+	summary.WriteString(e.name)
+	if hasOptions {
+		summary.WriteString(" [options]")
+	}
+	if hasArgs {
+		summary.WriteString(" " + e.args.String())
+	}
+	usage.WriteString(summary.String() + "\n")
+
+	if hasOptions {
+		usage.WriteString("\nOptions:")
+		for _, o := range e.options {
+			usage.WriteString(fmt.Sprintf("\n%s\n", o.String()))
+		}
+	}
+	return usage.String()
 }
 
 func (e entry) String() string {

@@ -2,9 +2,43 @@ package usage
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 	"testing"
 )
+
+func stringToEntry(str string) *entry {
+	subcommandAndArgs, choppedDescription, _ := strings.Cut(str, "\n"+strings.Repeat(Indent, 2))
+	subcommandAndArgs = strings.TrimPrefix(subcommandAndArgs, Indent)
+	subcommand, args, _ := strings.Cut(subcommandAndArgs, " ")
+
+	var description strings.Builder
+	for _, line := range strings.Split(choppedDescription, "\n"+strings.Repeat(Indent, 2)) {
+		if line == "" {
+			description.WriteString("\n\n")
+		} else {
+			description.WriteString(" " + line)
+		}
+	}
+
+	argSlc := newArgSlice(args)
+
+	return &entry{
+		name:        subcommand,
+		Description: strings.Replace(description.String(), "> <", fmt.Sprintf("> %s <", strings.Repeat("a", 72)), 1),
+		args:        argSlc,
+	}
+}
+
+func stringToMultipleEntries(str string) []entry {
+	splitter := regexp.MustCompile(`[\n:]\n` + Indent)
+	entryStrings := splitter.Split(str, -1)
+	entries := make([]entry, 0)
+	for _, e := range entryStrings[1:] {
+		entries = append(entries, *stringToEntry(strings.TrimSpace(e)))
+	}
+	return entries
+}
 
 func assertOptionSlice(t *testing.T, got, want []option) {
 	if len(got) != len(want) {
@@ -176,32 +210,7 @@ type entryStringTester struct {
 
 func (tester entryStringTester) assertString() func(*testing.T) {
 	return func(t *testing.T) {
-		subcommandAndArgs, choppedDescription, _ := strings.Cut(tester.oString, "\n"+strings.Repeat(Indent, 2))
-		subcommandAndArgs = strings.TrimPrefix(subcommandAndArgs, Indent)
-		subcommand, args, _ := strings.Cut(subcommandAndArgs, " ")
-
-		var description strings.Builder
-		for _, line := range strings.Split(choppedDescription, "\n"+strings.Repeat(Indent, 2)) {
-			if line == "" {
-				description.WriteString("\n\n")
-			} else {
-				description.WriteString(" " + line)
-			}
-		}
-
-		var argSlc argSlice
-		if args == "" {
-			argSlc = make(argSlice, 0)
-		} else {
-			argSlc = argSlice(strings.Split(args[1:len(args)-1], "> <"))
-		}
-
-		sampleEntry := entry{
-			name:        subcommand,
-			Description: strings.Replace(description.String(), "> <", fmt.Sprintf("> %s <", strings.Repeat("a", 72)), 1),
-			args:        argSlc,
-		}
-
+		sampleEntry := stringToEntry(tester.oString)
 		if got := sampleEntry.String(); got != tester.oString {
 			t.Errorf("string is %q but should be %q", got, tester.oString)
 		}

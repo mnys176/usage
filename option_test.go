@@ -2,9 +2,50 @@ package usage
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 	"testing"
 )
+
+func stringToOption(str string) *option {
+	aliasesAndArgs, choppedDescription, _ := strings.Cut(str, "\n"+strings.Repeat(Indent, 2))
+	aliasesAndArgs = strings.TrimPrefix(aliasesAndArgs, Indent)
+
+	aliases := make([]string, 0)
+	argSlc := make(argSlice, 0)
+	for _, token := range strings.Split(aliasesAndArgs, " ") {
+		if strings.HasPrefix(token, "-") {
+			aliases = append(aliases, strings.Trim(token, "-,"))
+		} else if strings.HasPrefix(token, "<") {
+			argSlc = append(argSlc, strings.Trim(token, "<>"))
+		}
+	}
+
+	var description strings.Builder
+	for _, line := range strings.Split(choppedDescription, "\n"+strings.Repeat(Indent, 2)) {
+		if line == "" {
+			description.WriteString("\n\n")
+		} else {
+			description.WriteString(" " + line)
+		}
+	}
+
+	return &option{
+		aliases:     aliases,
+		Description: strings.Replace(strings.TrimSpace(description.String()), "> <", fmt.Sprintf("> %s <", strings.Repeat("a", 72)), 1),
+		args:        argSlc,
+	}
+}
+
+func stringToMultipleOptions(str string) []option {
+	splitter := regexp.MustCompile(`[\n:]\n` + Indent)
+	optionStrings := splitter.Split(str, -1)
+	options := make([]option, 0)
+	for _, o := range optionStrings[1:] {
+		options = append(options, *stringToOption(strings.TrimSpace(o)))
+	}
+	return options
+}
 
 func assertAliasSlice(t *testing.T, got, want []string) {
 	if len(got) != len(want) {
@@ -160,34 +201,7 @@ type optionStringTester struct {
 
 func (tester optionStringTester) assertString() func(*testing.T) {
 	return func(t *testing.T) {
-		aliasesAndArgs, choppedDescription, _ := strings.Cut(tester.oString, "\n"+strings.Repeat(Indent, 2))
-		aliasesAndArgs = strings.TrimPrefix(aliasesAndArgs, Indent)
-
-		aliases := make([]string, 0)
-		argSlc := make(argSlice, 0)
-		for _, token := range strings.Split(aliasesAndArgs, " ") {
-			if strings.HasPrefix(token, "-") {
-				aliases = append(aliases, strings.Trim(token, "-,"))
-			} else if strings.HasPrefix(token, "<") {
-				argSlc = append(argSlc, strings.Trim(token, "<>"))
-			}
-		}
-
-		var description strings.Builder
-		for _, line := range strings.Split(choppedDescription, "\n"+strings.Repeat(Indent, 2)) {
-			if line == "" {
-				description.WriteString("\n\n")
-			} else {
-				description.WriteString(" " + line)
-			}
-		}
-
-		sampleOption := option{
-			aliases:     aliases,
-			Description: strings.Replace(description.String(), "> <", fmt.Sprintf("> %s <", strings.Repeat("a", 72)), 1),
-			args:        argSlc,
-		}
-
+		sampleOption := stringToOption(tester.oString)
 		if got := sampleOption.String(); got != tester.oString {
 			t.Errorf("string is %q but should be %q", got, tester.oString)
 		}

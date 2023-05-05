@@ -79,13 +79,17 @@ func (u usage) Global() string {
 	if hasOptions {
 		summary.WriteString(" [options]")
 	}
-	if hasArgs {
-		if hasEntries {
-			summary.WriteString(" <args>")
-		} else {
-			summary.WriteString(" " + u.args.String())
+	if hasEntries {
+		for _, e := range u.entries {
+			if len(e.args) > 0 {
+				summary.WriteString(" <args>")
+				break
+			}
 		}
+	} else if hasArgs {
+		summary.WriteString(" " + u.args.String())
 	}
+
 	if hasEntries {
 		summary.WriteRune('\n')
 		extension := "To learn more about the available options" +

@@ -118,7 +118,10 @@ func (u usage) Usage() string {
 }
 
 func (u usage) Lookup(entry string) string {
-	return "lookup: " + entry
+	if e, ok := u.entries[entry]; ok {
+		return fmt.Sprintf(e.Usage(), u.name)
+	}
+	return ""
 }
 
 func (u *usage) SetName(name string) error {

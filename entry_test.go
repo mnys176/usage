@@ -223,24 +223,16 @@ type entryUsageTester struct {
 
 func (tester entryUsageTester) assertString() func(*testing.T) {
 	return func(t *testing.T) {
-		summaryStart := strings.Index(tester.oUsage, "Usage:")
-		optionsStart := strings.Index(tester.oUsage, "Options:")
+		summarySection, optionsSection, _ := splitUsage(tester.oUsage)
 
 		var name string
 		var args argSlice
-		if summaryStart > -1 {
-			var summarySection string
-			if optionsStart > -1 {
-				summarySection = tester.oUsage[summaryStart:optionsStart]
-			} else {
-				summarySection = tester.oUsage[summaryStart:]
-			}
+		if summarySection != "" {
 			name, args = stringToNameAndArgs(summarySection)
 		}
 
 		var sampleOptions []option
-		if optionsStart > -1 {
-			optionsSection := tester.oUsage[optionsStart:]
+		if optionsSection != "" {
 			sampleOptions = stringToMultipleOptions(optionsSection)
 		} else {
 			sampleOptions = make([]option, 0)

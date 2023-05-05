@@ -9,10 +9,24 @@ import (
 	"testing"
 )
 
-func stringToUsageNameAndArgs(str string) (string, argSlice) {
+func stringToNameAndArgs(str string) (string, argSlice) {
 	splitter := regexp.MustCompile(`[\n:]\n` + Indent)
 	summaryString := strings.TrimSpace(splitter.Split(str, 3)[1])
-	name, argString, _ := strings.Cut(summaryString, " ")
+
+	var nameString, argString string
+	if argStringStart := strings.IndexAny(summaryString, "<["); argStringStart > -1 {
+		nameString = summaryString[:argStringStart-1]
+		argString = summaryString[argStringStart:]
+	} else {
+		nameString = summaryString
+	}
+
+	var name string
+	if parts := strings.Split(nameString, " "); len(parts) > 1 {
+		name = parts[len(parts)-1]
+	} else {
+		name = nameString
+	}
 
 	if strings.HasPrefix(argString, "<command>") {
 		return name, newArgSlice("")
@@ -411,7 +425,7 @@ func (tester usageUsageTester) assertString() func(*testing.T) {
 			} else {
 				summarySection = tester.oUsage[summaryStart:]
 			}
-			name, args = stringToUsageNameAndArgs(summarySection)
+			name, args = stringToNameAndArgs(summarySection)
 		}
 
 		var sampleOptions []option

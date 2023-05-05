@@ -7,23 +7,6 @@ import (
 	"testing"
 )
 
-func stringToEntryNameAndArgs(str string) (string, argSlice) {
-	splitter := regexp.MustCompile(`[\n:]\n` + Indent)
-	summaryString := strings.TrimSpace(splitter.Split(str, 3)[1])
-
-	var name, argString string
-	if parts := strings.SplitN(summaryString, " ", 3); len(parts) == 3 {
-		name, argString = parts[1], parts[2]
-	} else if len(parts) == 2 {
-		name = parts[1]
-	}
-
-	if argsStart := strings.IndexRune(argString, '<'); argsStart > -1 {
-		return name, newArgSlice(argString[argsStart:])
-	}
-	return name, newArgSlice("")
-}
-
 func stringToEntry(str string) *entry {
 	subcommandAndArgs, choppedDescription, _ := strings.Cut(str, "\n"+strings.Repeat(Indent, 2))
 	subcommandAndArgs = strings.TrimPrefix(subcommandAndArgs, Indent)
@@ -252,7 +235,7 @@ func (tester entryUsageTester) assertString() func(*testing.T) {
 			} else {
 				summarySection = tester.oUsage[summaryStart:]
 			}
-			name, args = stringToEntryNameAndArgs(summarySection)
+			name, args = stringToNameAndArgs(summarySection)
 		}
 
 		var sampleOptions []option

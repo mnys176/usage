@@ -77,7 +77,7 @@ func (u usage) Usage() string {
 		summary.WriteString(" <command>")
 	}
 	if hasOptions {
-		summary.WriteString("  [options]")
+		summary.WriteString(" [options]")
 	}
 	if hasEntries {
 		for _, e := range u.entries {

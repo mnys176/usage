@@ -2,7 +2,15 @@ name: CI
 on:
   workflow_dispatch:
 jobs:
-  foo:
+  test:
     runs-on: ubuntu-latest
     steps:
-    - run: "echo Hello, GH Actions!"
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.20'
+      - name: Run unit tests
+        run: go test -v
+      - run: "echo Hello, GH Actions!"

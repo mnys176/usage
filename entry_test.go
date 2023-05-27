@@ -7,6 +7,8 @@ import (
 	"testing"
 )
 
+/***** Helpers ************************************************/
+
 func stringToEntry(str string) *entry {
 	subcommandAndArgs, choppedDescription, _ := strings.Cut(str, "\n"+strings.Repeat(Indent, 2))
 	subcommandAndArgs = strings.TrimPrefix(subcommandAndArgs, Indent)
@@ -48,6 +50,8 @@ func assertOptionSlice(t *testing.T, got, want []option) {
 		assertOptionStruct(t, &gotOption, &want[i])
 	}
 }
+
+/***** Testers ************************************************/
 
 type entryArgsTester struct {
 	oArgs []string
@@ -249,6 +253,8 @@ func (tester entryUsageTester) assertString() func(*testing.T) {
 		}
 	}
 }
+
+/***** Test Cases *********************************************/
 
 func TestEntryArgs(t *testing.T) {
 	t.Run("baseline", entryArgsTester{

@@ -5,6 +5,8 @@ import (
 	"testing"
 )
 
+/***** Helpers ************************************************/
+
 func assertArgSlice(t *testing.T, got, want argSlice) {
 	if len(got) != len(want) {
 		t.Fatalf("%d args returned but wanted %d", len(got), len(want))
@@ -16,12 +18,7 @@ func assertArgSlice(t *testing.T, got, want argSlice) {
 	}
 }
 
-// func assertArgSliceString(t *testing.T, got string) {
-// 	rawPattern := `^((<.+?>)( <.+?>)*)?$`
-// 	if matched, _ := regexp.MatchString(rawPattern, got); !matched {
-// 		t.Errorf("arg slice string %q does not match pattern %q", got, rawPattern)
-// 	}
-// }
+/***** Testers ************************************************/
 
 type argSliceStringTester struct {
 	oString string
@@ -44,6 +41,8 @@ func (tester argSliceStringTester) assertEmptyString() func(*testing.T) {
 		}
 	}
 }
+
+/***** Test Cases *********************************************/
 
 func TestArgSliceString(t *testing.T) {
 	t.Run("baseline", argSliceStringTester{

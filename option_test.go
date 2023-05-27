@@ -7,6 +7,8 @@ import (
 	"testing"
 )
 
+/***** Helpers ************************************************/
+
 func stringToOption(str string) *option {
 	aliasesAndArgs, choppedDescription, _ := strings.Cut(str, "\n"+strings.Repeat(Indent, 2))
 	aliasesAndArgs = strings.TrimPrefix(aliasesAndArgs, Indent)
@@ -65,6 +67,8 @@ func assertOptionStruct(t *testing.T, got, want *option) {
 	}
 	assertArgSlice(t, got.args, want.args)
 }
+
+/***** Testers ************************************************/
 
 type optionArgsTester struct {
 	oArgs []string
@@ -207,6 +211,8 @@ func (tester optionStringTester) assertString() func(*testing.T) {
 		}
 	}
 }
+
+/***** Test Cases *********************************************/
 
 func TestOptionArgs(t *testing.T) {
 	t.Run("baseline", optionArgsTester{

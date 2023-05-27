@@ -9,6 +9,8 @@ import (
 	"testing"
 )
 
+/***** Helpers ************************************************/
+
 func splitNameAndArgs(summary string) (string, string) {
 	var name, args string
 	if argsStart := strings.IndexAny(summary, "<["); argsStart > -1 {
@@ -94,6 +96,8 @@ func assertEntrySlice(t *testing.T, got, want []entry) {
 		assertEntryStruct(t, &gotEntry, &want[i])
 	}
 }
+
+/***** Testers ************************************************/
 
 type usageArgsTester struct {
 	oArgs []string
@@ -339,6 +343,8 @@ func (tester newUsageTester) assertErrEmptyNameString() func(*testing.T) {
 		assertError(t, got, tester.oErr)
 	}
 }
+
+/***** Test Cases *********************************************/
 
 func TestUsageArgs(t *testing.T) {
 	t.Run("baseline", usageArgsTester{

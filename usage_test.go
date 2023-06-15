@@ -77,7 +77,7 @@ func assertError(t *testing.T, got, want error) {
 	}
 }
 
-func assertEntryStruct(t *testing.T, got, want *entry) {
+func assertEntryStruct(t *testing.T, got, want *Entry) {
 	if got.name != want.name {
 		t.Errorf("name is %q but should be %q", got.name, want.name)
 	}
@@ -88,7 +88,7 @@ func assertEntryStruct(t *testing.T, got, want *entry) {
 	assertOptionSlice(t, got.options, want.options)
 }
 
-func assertEntrySlice(t *testing.T, got, want []entry) {
+func assertEntrySlice(t *testing.T, got, want []Entry) {
 	if len(got) != len(want) {
 		t.Fatalf("%d entries returned but wanted %d", len(got), len(want))
 	}
@@ -105,26 +105,26 @@ type usageArgsTester struct {
 
 func (tester usageArgsTester) assertUsageArgs() func(*testing.T) {
 	return func(t *testing.T) {
-		sampleUsage := usage{args: tester.oArgs}
+		sampleUsage := Usage{args: tester.oArgs}
 		got := sampleUsage.Args()
 		assertArgSlice(t, got, tester.oArgs)
 	}
 }
 
 type usageOptionsTester struct {
-	oOptions []option
+	oOptions []Option
 }
 
 func (tester usageOptionsTester) assertUsageOptions() func(*testing.T) {
 	return func(t *testing.T) {
-		sampleUsage := usage{options: tester.oOptions}
+		sampleUsage := Usage{options: tester.oOptions}
 		got := sampleUsage.Options()
 		assertOptionSlice(t, got, tester.oOptions)
 	}
 }
 
 type usageEntriesTester struct {
-	oEntries []entry
+	oEntries []Entry
 }
 
 func (tester usageEntriesTester) assertUsageEntries() func(*testing.T) {
@@ -132,7 +132,7 @@ func (tester usageEntriesTester) assertUsageEntries() func(*testing.T) {
 		sort.Slice(tester.oEntries, func(i, j int) bool {
 			return tester.oEntries[i].name < tester.oEntries[j].name
 		})
-		sampleUsage := usage{entries: make(map[string]entry)}
+		sampleUsage := Usage{entries: make(map[string]Entry)}
 		for _, sampleEntry := range tester.oEntries {
 			sampleUsage.entries[sampleEntry.name] = sampleEntry
 		}
@@ -150,7 +150,7 @@ func (tester usageAddArgTester) assertUsageArgs() func(*testing.T) {
 	return func(t *testing.T) {
 		iterations := 3
 		tempArgs := make([]string, 0, iterations)
-		sampleUsage := usage{args: make([]string, 0)}
+		sampleUsage := Usage{args: make([]string, 0)}
 		for i := 1; i <= iterations; i++ {
 			if gotErr := sampleUsage.AddArg(tester.iArg); gotErr != nil {
 				t.Errorf("got %q error but should be nil", gotErr)
@@ -163,7 +163,7 @@ func (tester usageAddArgTester) assertUsageArgs() func(*testing.T) {
 
 func (tester usageAddArgTester) assertErrEmptyArgString() func(*testing.T) {
 	return func(t *testing.T) {
-		sampleUsage := usage{args: make([]string, 0)}
+		sampleUsage := Usage{args: make([]string, 0)}
 		got := sampleUsage.AddArg(tester.iArg)
 		if got == nil {
 			t.Fatal("no error returned with an empty arg string")
@@ -174,12 +174,12 @@ func (tester usageAddArgTester) assertErrEmptyArgString() func(*testing.T) {
 
 func (tester usageAddArgTester) assertErrExistingEntries() func(*testing.T) {
 	return func(t *testing.T) {
-		sampleUsage := usage{
-			entries: map[string]entry{
+		sampleUsage := Usage{
+			entries: map[string]Entry{
 				"foo": {
 					name:        "foo",
 					Description: "foo",
-					options: []option{{
+					options: []Option{{
 						aliases:     []string{"foo"},
 						Description: "foo",
 						args:        []string{"foo"},
@@ -199,15 +199,15 @@ func (tester usageAddArgTester) assertErrExistingEntries() func(*testing.T) {
 }
 
 type usageAddOptionTester struct {
-	iOption *option
+	iOption *Option
 	oErr    error
 }
 
 func (tester usageAddOptionTester) assertUsageOptions() func(*testing.T) {
 	return func(t *testing.T) {
 		iterations := 3
-		tempOptions := make([]option, 0, iterations)
-		sampleUsage := usage{options: make([]option, 0)}
+		tempOptions := make([]Option, 0, iterations)
+		sampleUsage := Usage{options: make([]Option, 0)}
 		for i := 1; i <= iterations; i++ {
 			if gotErr := sampleUsage.AddOption(tester.iOption); gotErr != nil {
 				t.Errorf("got %q error but should be nil", gotErr)
@@ -220,7 +220,7 @@ func (tester usageAddOptionTester) assertUsageOptions() func(*testing.T) {
 
 func (tester usageAddOptionTester) assertErrNoOptionProvided() func(*testing.T) {
 	return func(t *testing.T) {
-		sampleUsage := usage{options: make([]option, 0)}
+		sampleUsage := Usage{options: make([]Option, 0)}
 		got := sampleUsage.AddOption(tester.iOption)
 		if got == nil {
 			t.Fatal("no error returned with nil option")
@@ -230,30 +230,30 @@ func (tester usageAddOptionTester) assertErrNoOptionProvided() func(*testing.T) 
 }
 
 type usageAddEntryTester struct {
-	iEntry *entry
+	iEntry *Entry
 	oErr   error
 }
 
 func (tester usageAddEntryTester) assertUsageEntries() func(*testing.T) {
 	return func(t *testing.T) {
-		sampleUsage := usage{entries: make(map[string]entry)}
+		sampleUsage := Usage{entries: make(map[string]Entry)}
 		if gotErr := sampleUsage.AddEntry(tester.iEntry); gotErr != nil {
 			t.Errorf("got %q error but should be nil", gotErr)
 		}
-		sampleEntries := make([]entry, 0)
+		sampleEntries := make([]Entry, 0)
 		for _, sampleEntry := range sampleUsage.entries {
 			sampleEntries = append(sampleEntries, sampleEntry)
 		}
 		sort.Slice(sampleEntries, func(i, j int) bool {
 			return sampleEntries[i].name < sampleEntries[j].name
 		})
-		assertEntrySlice(t, sampleEntries, []entry{*tester.iEntry})
+		assertEntrySlice(t, sampleEntries, []Entry{*tester.iEntry})
 	}
 }
 
 func (tester usageAddEntryTester) assertErrNoEntryProvided() func(*testing.T) {
 	return func(t *testing.T) {
-		sampleUsage := usage{entries: make(map[string]entry)}
+		sampleUsage := Usage{entries: make(map[string]Entry)}
 		got := sampleUsage.AddEntry(tester.iEntry)
 		if got == nil {
 			t.Fatal("no error returned with nil entry")
@@ -264,8 +264,8 @@ func (tester usageAddEntryTester) assertErrNoEntryProvided() func(*testing.T) {
 
 func (tester usageAddEntryTester) assertErrExistingArgs() func(*testing.T) {
 	return func(t *testing.T) {
-		sampleUsage := usage{
-			entries: make(map[string]entry),
+		sampleUsage := Usage{
+			entries: make(map[string]Entry),
 			args:    []string{"foo"},
 		}
 		got := sampleUsage.AddEntry(tester.iEntry)
@@ -283,7 +283,7 @@ type usageSetNameTester struct {
 
 func (tester usageSetNameTester) assertUsageName() func(*testing.T) {
 	return func(t *testing.T) {
-		sampleUsage := usage{name: "bar"}
+		sampleUsage := Usage{name: "bar"}
 		if gotErr := sampleUsage.SetName(tester.iName); gotErr != nil {
 			t.Errorf("got %q error but should be nil", gotErr)
 		}
@@ -295,7 +295,7 @@ func (tester usageSetNameTester) assertUsageName() func(*testing.T) {
 
 func (tester usageSetNameTester) assertErrEmptyNameString() func(*testing.T) {
 	return func(t *testing.T) {
-		sampleUsage := usage{name: "bar"}
+		sampleUsage := Usage{name: "bar"}
 		got := sampleUsage.SetName(tester.iName)
 		if got == nil {
 			t.Fatal("no error returned with empty name string")
@@ -306,7 +306,7 @@ func (tester usageSetNameTester) assertErrEmptyNameString() func(*testing.T) {
 
 type newUsageTester struct {
 	iName  string
-	oUsage *usage
+	oUsage *Usage
 	oErr   error
 }
 
@@ -360,14 +360,14 @@ func TestUsageArgs(t *testing.T) {
 
 func TestUsageOptions(t *testing.T) {
 	t.Run("baseline", usageOptionsTester{
-		oOptions: []option{{
+		oOptions: []Option{{
 			aliases:     []string{"foo"},
 			Description: "foo",
 			args:        []string{"foo"},
 		}},
 	}.assertUsageOptions())
 	t.Run("multiple options", usageOptionsTester{
-		oOptions: []option{
+		oOptions: []Option{
 			{
 				aliases:     []string{"foo"},
 				Description: "foo",
@@ -386,16 +386,16 @@ func TestUsageOptions(t *testing.T) {
 		},
 	}.assertUsageOptions())
 	t.Run("no options", usageOptionsTester{
-		oOptions: make([]option, 0),
+		oOptions: make([]Option, 0),
 	}.assertUsageOptions())
 }
 
 func TestUsageEntries(t *testing.T) {
 	t.Run("baseline", usageEntriesTester{
-		oEntries: []entry{{
+		oEntries: []Entry{{
 			name:        "foo",
 			Description: "foo",
-			options: []option{{
+			options: []Option{{
 				aliases:     []string{"foo"},
 				Description: "foo",
 				args:        []string{"foo"},
@@ -404,11 +404,11 @@ func TestUsageEntries(t *testing.T) {
 		}},
 	}.assertUsageEntries())
 	t.Run("multiple entries", usageEntriesTester{
-		oEntries: []entry{
+		oEntries: []Entry{
 			{
 				name:        "foo",
 				Description: "foo",
-				options: []option{{
+				options: []Option{{
 					aliases:     []string{"foo"},
 					Description: "foo",
 					args:        []string{"foo"},
@@ -418,7 +418,7 @@ func TestUsageEntries(t *testing.T) {
 			{
 				name:        "bar",
 				Description: "bar",
-				options: []option{{
+				options: []Option{{
 					aliases:     []string{"bar"},
 					Description: "bar",
 					args:        []string{"bar"},
@@ -428,7 +428,7 @@ func TestUsageEntries(t *testing.T) {
 			{
 				name:        "baz",
 				Description: "baz",
-				options: []option{{
+				options: []Option{{
 					aliases:     []string{"baz"},
 					Description: "baz",
 					args:        []string{"baz"},
@@ -438,7 +438,7 @@ func TestUsageEntries(t *testing.T) {
 		},
 	}.assertUsageEntries())
 	t.Run("no entries", usageEntriesTester{
-		oEntries: make([]entry, 0),
+		oEntries: make([]Entry, 0),
 	}.assertUsageEntries())
 }
 
@@ -456,22 +456,22 @@ func (tester usageUsageTester) assertString() func(*testing.T) {
 			name, args = stringToNameAndArgs(summarySection)
 		}
 
-		var sampleOptions []option
+		var sampleOptions []Option
 		if optionsSection != "" {
 			sampleOptions = stringToMultipleOptions(optionsSection)
 		} else {
-			sampleOptions = make([]option, 0)
+			sampleOptions = make([]Option, 0)
 		}
 
-		var sampleEntries []entry
+		var sampleEntries []Entry
 		if commandsSection != "" {
 			sampleEntries = stringToMultipleEntries(commandsSection)
 		}
 
-		sampleUsage := usage{
+		sampleUsage := Usage{
 			name:    name,
 			options: sampleOptions,
-			entries: make(map[string]entry),
+			entries: make(map[string]Entry),
 			args:    args,
 		}
 		for _, e := range sampleEntries {
@@ -503,22 +503,22 @@ func (tester usageLookupTester) assertString() func(*testing.T) {
 			name, args = stringToNameAndArgs(summarySection)
 		}
 
-		var sampleOptions []option
+		var sampleOptions []Option
 		if optionsSection != "" {
 			sampleOptions = stringToMultipleOptions(optionsSection)
 		} else {
-			sampleOptions = make([]option, 0)
+			sampleOptions = make([]Option, 0)
 		}
 
-		sampleEntry := entry{
+		sampleEntry := Entry{
 			name:    name,
 			options: sampleOptions,
 			args:    args,
 		}
 
-		sampleUsage := usage{
+		sampleUsage := Usage{
 			name:    parentName,
-			entries: map[string]entry{sampleEntry.name: sampleEntry},
+			entries: map[string]Entry{sampleEntry.name: sampleEntry},
 			options: sampleOptions,
 			args:    args,
 		}
@@ -531,7 +531,7 @@ func (tester usageLookupTester) assertString() func(*testing.T) {
 
 func (tester usageLookupTester) assertEmptyString() func(*testing.T) {
 	return func(t *testing.T) {
-		sampleUsage := usage{entries: make(map[string]entry)}
+		sampleUsage := Usage{entries: make(map[string]Entry)}
 		if got := sampleUsage.Lookup("foo"); got != tester.oUsage {
 			t.Errorf("string is %q but should be empty", got)
 		}
@@ -553,7 +553,7 @@ func TestUsageAddArg(t *testing.T) {
 
 func TestUsageAddOption(t *testing.T) {
 	t.Run("baseline", usageAddOptionTester{
-		iOption: &option{
+		iOption: &Option{
 			aliases:     []string{"foo"},
 			Description: "foo",
 			args:        []string{"foo"},
@@ -566,10 +566,10 @@ func TestUsageAddOption(t *testing.T) {
 
 func TestUsageAddEntry(t *testing.T) {
 	t.Run("baseline", usageAddEntryTester{
-		iEntry: &entry{
+		iEntry: &Entry{
 			name:        "foo",
 			Description: "foo",
-			options: []option{{
+			options: []Option{{
 				aliases:     []string{"foo"},
 				Description: "foo",
 				args:        []string{"foo"},
@@ -578,10 +578,10 @@ func TestUsageAddEntry(t *testing.T) {
 		},
 	}.assertUsageEntries())
 	t.Run("existing args", usageAddEntryTester{
-		iEntry: &entry{
+		iEntry: &Entry{
 			name:        "foo",
 			Description: "foo",
-			options: []option{{
+			options: []Option{{
 				aliases:     []string{"foo"},
 				Description: "foo",
 				args:        []string{"foo"},
@@ -598,7 +598,7 @@ func TestUsageAddEntry(t *testing.T) {
 func TestNewUsage(t *testing.T) {
 	t.Run("baseline", newUsageTester{
 		iName:  "foo",
-		oUsage: &usage{name: "foo"},
+		oUsage: &Usage{name: "foo"},
 	}.assertUsage())
 	t.Run("empty name string", newUsageTester{
 		oErr: emptyNameStringErr(),

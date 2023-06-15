@@ -2,17 +2,17 @@ package usage
 
 import "strings"
 
-type option struct {
+type Option struct {
 	Description string
 	aliases     []string
 	args        argSlice
 }
 
-func (o option) Args() []string {
+func (o Option) Args() []string {
 	return o.args
 }
 
-func (o *option) AddArg(arg string) error {
+func (o *Option) AddArg(arg string) error {
 	if arg == "" {
 		return emptyArgStringErr()
 	}
@@ -20,7 +20,7 @@ func (o *option) AddArg(arg string) error {
 	return nil
 }
 
-func (o *option) SetAliases(aliases []string) error {
+func (o *Option) SetAliases(aliases []string) error {
 	if len(aliases) == 0 {
 		return noAliasProvidedErr()
 	}
@@ -33,7 +33,7 @@ func (o *option) SetAliases(aliases []string) error {
 	return nil
 }
 
-func (o option) String() string {
+func (o Option) String() string {
 	var optionBuilder, aliasBuilder strings.Builder
 	for _, alias := range o.aliases {
 		if len(alias) == 1 {
@@ -54,7 +54,7 @@ func (o option) String() string {
 	return optionBuilder.String()
 }
 
-func NewOption(aliases []string, description string) (*option, error) {
+func NewOption(aliases []string, description string) (*Option, error) {
 	if len(aliases) == 0 {
 		return nil, noAliasProvidedErr()
 	}
@@ -64,7 +64,7 @@ func NewOption(aliases []string, description string) (*option, error) {
 		}
 	}
 
-	return &option{
+	return &Option{
 		aliases:     aliases,
 		Description: description,
 		args:        make([]string, 0),

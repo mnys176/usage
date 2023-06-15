@@ -9,23 +9,23 @@ import (
 
 const Indent string = "    "
 
-type usage struct {
+type Usage struct {
 	name    string
-	entries map[string]entry
-	options []option
+	entries map[string]Entry
+	options []Option
 	args    argSlice
 }
 
-func (u usage) Args() []string {
+func (u Usage) Args() []string {
 	return u.args
 }
 
-func (u usage) Options() []option {
+func (u Usage) Options() []Option {
 	return u.options
 }
 
-func (u usage) Entries() []entry {
-	output := make([]entry, 0)
+func (u Usage) Entries() []Entry {
+	output := make([]Entry, 0)
 	for _, v := range u.entries {
 		output = append(output, v)
 	}
@@ -35,7 +35,7 @@ func (u usage) Entries() []entry {
 	return output
 }
 
-func (u *usage) AddArg(arg string) error {
+func (u *Usage) AddArg(arg string) error {
 	if arg == "" {
 		return emptyArgStringErr()
 	}
@@ -46,7 +46,7 @@ func (u *usage) AddArg(arg string) error {
 	return nil
 }
 
-func (u *usage) AddOption(o *option) error {
+func (u *Usage) AddOption(o *Option) error {
 	if o == nil {
 		return nilOptionProvidedErr()
 	}
@@ -54,7 +54,7 @@ func (u *usage) AddOption(o *option) error {
 	return nil
 }
 
-func (u *usage) AddEntry(e *entry) error {
+func (u *Usage) AddEntry(e *Entry) error {
 	if e == nil {
 		return nilEntryProvidedErr()
 	}
@@ -65,7 +65,7 @@ func (u *usage) AddEntry(e *entry) error {
 	return nil
 }
 
-func (u usage) Usage() string {
+func (u Usage) Usage() string {
 	hasEntries, hasOptions, hasArgs := len(u.entries) > 0, len(u.options) > 0, len(u.args) > 0
 
 	var usage strings.Builder
@@ -117,14 +117,14 @@ func (u usage) Usage() string {
 	return usage.String()
 }
 
-func (u usage) Lookup(entry string) string {
+func (u Usage) Lookup(entry string) string {
 	if e, ok := u.entries[entry]; ok {
 		return fmt.Sprintf(e.Usage(), u.name)
 	}
 	return ""
 }
 
-func (u *usage) SetName(name string) error {
+func (u *Usage) SetName(name string) error {
 	if name == "" {
 		return emptyNameStringErr()
 	}
@@ -132,14 +132,14 @@ func (u *usage) SetName(name string) error {
 	return nil
 }
 
-func NewUsage(name string) (*usage, error) {
+func NewUsage(name string) (*Usage, error) {
 	if name == "" {
 		return nil, emptyNameStringErr()
 	}
-	return &usage{
+	return &Usage{
 		name:    name,
-		entries: make(map[string]entry),
-		options: make([]option, 0),
+		entries: make(map[string]Entry),
+		options: make([]Option, 0),
 		args:    make([]string, 0),
 	}, nil
 }

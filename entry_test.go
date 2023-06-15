@@ -9,7 +9,7 @@ import (
 
 /***** Helpers ************************************************/
 
-func stringToEntry(str string) *entry {
+func stringToEntry(str string) *Entry {
 	subcommandAndArgs, choppedDescription, _ := strings.Cut(str, "\n"+strings.Repeat(Indent, 2))
 	subcommandAndArgs = strings.TrimPrefix(subcommandAndArgs, Indent)
 	subcommand, args, _ := strings.Cut(subcommandAndArgs, " ")
@@ -25,24 +25,24 @@ func stringToEntry(str string) *entry {
 
 	argSlc := newArgSlice(args)
 
-	return &entry{
+	return &Entry{
 		name:        subcommand,
 		Description: strings.Replace(description.String(), "> <", fmt.Sprintf("> %s <", strings.Repeat("a", 72)), 1),
 		args:        argSlc,
 	}
 }
 
-func stringToMultipleEntries(str string) []entry {
+func stringToMultipleEntries(str string) []Entry {
 	splitter := regexp.MustCompile(`[\n:]\n` + Indent)
 	entryStrings := splitter.Split(str, -1)
-	entries := make([]entry, 0)
+	entries := make([]Entry, 0)
 	for _, e := range entryStrings[1:] {
 		entries = append(entries, *stringToEntry(strings.TrimSpace(e)))
 	}
 	return entries
 }
 
-func assertOptionSlice(t *testing.T, got, want []option) {
+func assertOptionSlice(t *testing.T, got, want []Option) {
 	if len(got) != len(want) {
 		t.Fatalf("%d options returned but wanted %d", len(got), len(want))
 	}
@@ -59,19 +59,19 @@ type entryArgsTester struct {
 
 func (tester entryArgsTester) assertEntryArgs() func(*testing.T) {
 	return func(t *testing.T) {
-		sampleEntry := entry{args: tester.oArgs}
+		sampleEntry := Entry{args: tester.oArgs}
 		got := sampleEntry.Args()
 		assertArgSlice(t, got, tester.oArgs)
 	}
 }
 
 type entryOptionsTester struct {
-	oOptions []option
+	oOptions []Option
 }
 
 func (tester entryOptionsTester) assertEntryOptions() func(*testing.T) {
 	return func(t *testing.T) {
-		sampleEntry := entry{options: tester.oOptions}
+		sampleEntry := Entry{options: tester.oOptions}
 		got := sampleEntry.Options()
 		assertOptionSlice(t, got, tester.oOptions)
 	}
@@ -86,7 +86,7 @@ func (tester entryAddArgTester) assertEntryArgs() func(*testing.T) {
 	return func(t *testing.T) {
 		iterations := 3
 		tempArgs := make([]string, 0, iterations)
-		sampleEntry := entry{args: make([]string, 0)}
+		sampleEntry := Entry{args: make([]string, 0)}
 		for i := 1; i <= iterations; i++ {
 			if gotErr := sampleEntry.AddArg(tester.iArg); gotErr != nil {
 				t.Errorf("got %q error but should be nil", gotErr)
@@ -99,7 +99,7 @@ func (tester entryAddArgTester) assertEntryArgs() func(*testing.T) {
 
 func (tester entryAddArgTester) assertErrEmptyArgString() func(*testing.T) {
 	return func(t *testing.T) {
-		sampleEntry := entry{args: make([]string, 0)}
+		sampleEntry := Entry{args: make([]string, 0)}
 		got := sampleEntry.AddArg(tester.iArg)
 		if got == nil {
 			t.Fatal("no error returned with an empty arg string")
@@ -109,15 +109,15 @@ func (tester entryAddArgTester) assertErrEmptyArgString() func(*testing.T) {
 }
 
 type entryAddOptionTester struct {
-	iOption *option
+	iOption *Option
 	oErr    error
 }
 
 func (tester entryAddOptionTester) assertEntryOptions() func(*testing.T) {
 	return func(t *testing.T) {
 		iterations := 3
-		tempOptions := make([]option, 0, iterations)
-		sampleEntry := entry{options: make([]option, 0)}
+		tempOptions := make([]Option, 0, iterations)
+		sampleEntry := Entry{options: make([]Option, 0)}
 		for i := 1; i <= iterations; i++ {
 			if gotErr := sampleEntry.AddOption(tester.iOption); gotErr != nil {
 				t.Errorf("got %q error but should be nil", gotErr)
@@ -130,7 +130,7 @@ func (tester entryAddOptionTester) assertEntryOptions() func(*testing.T) {
 
 func (tester entryAddOptionTester) assertErrNoOptionProvided() func(*testing.T) {
 	return func(t *testing.T) {
-		sampleEntry := entry{options: make([]option, 0)}
+		sampleEntry := Entry{options: make([]Option, 0)}
 		got := sampleEntry.AddOption(tester.iOption)
 		if got == nil {
 			t.Fatal("no error returned with nil option")
@@ -146,7 +146,7 @@ type entrySetNameTester struct {
 
 func (tester entrySetNameTester) assertEntryName() func(*testing.T) {
 	return func(t *testing.T) {
-		sampleEntry := entry{name: "bar"}
+		sampleEntry := Entry{name: "bar"}
 		if gotErr := sampleEntry.SetName(tester.iName); gotErr != nil {
 			t.Errorf("got %q error but should be nil", gotErr)
 		}
@@ -158,7 +158,7 @@ func (tester entrySetNameTester) assertEntryName() func(*testing.T) {
 
 func (tester entrySetNameTester) assertErrEmptyNameString() func(*testing.T) {
 	return func(t *testing.T) {
-		sampleEntry := entry{name: "bar"}
+		sampleEntry := Entry{name: "bar"}
 		got := sampleEntry.SetName(tester.iName)
 		if got == nil {
 			t.Fatal("no error returned with empty name string")
@@ -170,7 +170,7 @@ func (tester entrySetNameTester) assertErrEmptyNameString() func(*testing.T) {
 type newEntryTester struct {
 	iName        string
 	iDescription string
-	oEntry       *entry
+	oEntry       *Entry
 	oErr         error
 }
 
@@ -235,14 +235,14 @@ func (tester entryUsageTester) assertString() func(*testing.T) {
 			name, args = stringToNameAndArgs(summarySection)
 		}
 
-		var sampleOptions []option
+		var sampleOptions []Option
 		if optionsSection != "" {
 			sampleOptions = stringToMultipleOptions(optionsSection)
 		} else {
-			sampleOptions = make([]option, 0)
+			sampleOptions = make([]Option, 0)
 		}
 
-		sampleEntry := entry{
+		sampleEntry := Entry{
 			name:    name,
 			options: sampleOptions,
 			args:    args,
@@ -270,14 +270,14 @@ func TestEntryArgs(t *testing.T) {
 
 func TestEntryOptions(t *testing.T) {
 	t.Run("baseline", entryOptionsTester{
-		oOptions: []option{{
+		oOptions: []Option{{
 			aliases:     []string{"foo"},
 			Description: "foo",
 			args:        []string{"foo"},
 		}},
 	}.assertEntryOptions())
 	t.Run("multiple options", entryOptionsTester{
-		oOptions: []option{
+		oOptions: []Option{
 			{
 				aliases:     []string{"foo"},
 				Description: "foo",
@@ -296,7 +296,7 @@ func TestEntryOptions(t *testing.T) {
 		},
 	}.assertEntryOptions())
 	t.Run("no options", entryOptionsTester{
-		oOptions: make([]option, 0),
+		oOptions: make([]Option, 0),
 	}.assertEntryOptions())
 }
 
@@ -311,7 +311,7 @@ func TestEntryAddArg(t *testing.T) {
 
 func TestEntryAddOption(t *testing.T) {
 	t.Run("baseline", entryAddOptionTester{
-		iOption: &option{
+		iOption: &Option{
 			aliases:     []string{"foo"},
 			Description: "foo",
 			args:        []string{"foo"},
@@ -326,11 +326,11 @@ func TestNewEntry(t *testing.T) {
 	t.Run("baseline", newEntryTester{
 		iName:        "foo",
 		iDescription: "foo",
-		oEntry:       &entry{name: "foo", Description: "foo"},
+		oEntry:       &Entry{name: "foo", Description: "foo"},
 	}.assertEntry())
 	t.Run("empty description string", newEntryTester{
 		iName:  "foo",
-		oEntry: &entry{name: "foo"},
+		oEntry: &Entry{name: "foo"},
 	}.assertEntry())
 	t.Run("empty name string", newEntryTester{
 		iDescription: "foo",

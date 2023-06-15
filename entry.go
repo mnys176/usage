@@ -5,22 +5,22 @@ import (
 	"strings"
 )
 
-type entry struct {
+type Entry struct {
 	Description string
 	name        string
 	args        argSlice
-	options     []option
+	options     []Option
 }
 
-func (e entry) Args() []string {
+func (e Entry) Args() []string {
 	return e.args
 }
 
-func (e entry) Options() []option {
+func (e Entry) Options() []Option {
 	return e.options
 }
 
-func (e *entry) AddArg(arg string) error {
+func (e *Entry) AddArg(arg string) error {
 	if arg == "" {
 		return emptyArgStringErr()
 	}
@@ -28,7 +28,7 @@ func (e *entry) AddArg(arg string) error {
 	return nil
 }
 
-func (e *entry) AddOption(o *option) error {
+func (e *Entry) AddOption(o *Option) error {
 	if o == nil {
 		return nilOptionProvidedErr()
 	}
@@ -36,7 +36,7 @@ func (e *entry) AddOption(o *option) error {
 	return nil
 }
 
-func (e *entry) SetName(name string) error {
+func (e *Entry) SetName(name string) error {
 	if name == "" {
 		return emptyNameStringErr()
 	}
@@ -44,7 +44,7 @@ func (e *entry) SetName(name string) error {
 	return nil
 }
 
-func (e entry) Usage() string {
+func (e Entry) Usage() string {
 	hasOptions, hasArgs := len(e.options) > 0, len(e.args) > 0
 
 	var usage strings.Builder
@@ -69,7 +69,7 @@ func (e entry) Usage() string {
 	return usage.String()
 }
 
-func (e entry) String() string {
+func (e Entry) String() string {
 	var entryBuilder strings.Builder
 	entryBuilder.WriteString(Indent + e.name)
 	if len(e.args) > 0 {
@@ -81,14 +81,14 @@ func (e entry) String() string {
 	return entryBuilder.String()
 }
 
-func NewEntry(name, description string) (*entry, error) {
+func NewEntry(name, description string) (*Entry, error) {
 	if name == "" {
 		return nil, emptyNameStringErr()
 	}
-	return &entry{
+	return &Entry{
 		name:        name,
 		Description: description,
 		args:        make([]string, 0),
-		options:     make([]option, 0),
+		options:     make([]Option, 0),
 	}, nil
 }

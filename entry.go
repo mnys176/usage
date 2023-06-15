@@ -48,7 +48,7 @@ func (e entry) Usage() string {
 	hasOptions, hasArgs := len(e.options) > 0, len(e.args) > 0
 
 	var usage strings.Builder
-	usage.WriteString("Usage:\n" + Indent + "%s ")
+	usage.WriteString("Usage:\n" + Indent + "%s  ")
 
 	var summary strings.Builder
 	summary.WriteString(e.name)

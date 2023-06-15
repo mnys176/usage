@@ -9,7 +9,7 @@ import (
 
 /***** Helpers ************************************************/
 
-func stringToOption(str string) *option {
+func stringToOption(str string) *Option {
 	aliasesAndArgs, choppedDescription, _ := strings.Cut(str, "\n"+strings.Repeat(Indent, 2))
 	aliasesAndArgs = strings.TrimPrefix(aliasesAndArgs, Indent)
 
@@ -32,17 +32,17 @@ func stringToOption(str string) *option {
 		}
 	}
 
-	return &option{
+	return &Option{
 		aliases:     aliases,
 		Description: strings.Replace(strings.TrimSpace(description.String()), "> <", fmt.Sprintf("> %s <", strings.Repeat("a", 72)), 1),
 		args:        argSlc,
 	}
 }
 
-func stringToMultipleOptions(str string) []option {
+func stringToMultipleOptions(str string) []Option {
 	splitter := regexp.MustCompile(`[\n:]\n` + Indent)
 	optionStrings := splitter.Split(str, -1)
-	options := make([]option, 0)
+	options := make([]Option, 0)
 	for _, o := range optionStrings[1:] {
 		options = append(options, *stringToOption(strings.TrimSpace(o)))
 	}
@@ -60,7 +60,7 @@ func assertAliasSlice(t *testing.T, got, want []string) {
 	}
 }
 
-func assertOptionStruct(t *testing.T, got, want *option) {
+func assertOptionStruct(t *testing.T, got, want *Option) {
 	assertAliasSlice(t, got.aliases, want.aliases)
 	if got.Description != want.Description {
 		t.Errorf("description is %q but should be %q", got.Description, want.Description)
@@ -76,7 +76,7 @@ type optionArgsTester struct {
 
 func (tester optionArgsTester) assertOptionArgs() func(*testing.T) {
 	return func(t *testing.T) {
-		sampleOption := option{args: tester.oArgs}
+		sampleOption := Option{args: tester.oArgs}
 		got := sampleOption.Args()
 		assertArgSlice(t, got, tester.oArgs)
 	}
@@ -91,7 +91,7 @@ func (tester optionAddArgTester) assertOptionArgs() func(*testing.T) {
 	return func(t *testing.T) {
 		iterations := 3
 		tempArgs := make([]string, 0, iterations)
-		sampleOption := option{args: make([]string, 0)}
+		sampleOption := Option{args: make([]string, 0)}
 		for i := 1; i <= iterations; i++ {
 			if gotErr := sampleOption.AddArg(tester.iArg); gotErr != nil {
 				t.Errorf("got %q error but should be nil", gotErr)
@@ -104,7 +104,7 @@ func (tester optionAddArgTester) assertOptionArgs() func(*testing.T) {
 
 func (tester optionAddArgTester) assertErrEmptyArgString() func(*testing.T) {
 	return func(t *testing.T) {
-		sampleOption := option{args: make([]string, 0)}
+		sampleOption := Option{args: make([]string, 0)}
 		got := sampleOption.AddArg(tester.iArg)
 		if got == nil {
 			t.Fatal("no error returned with an empty arg string")
@@ -116,7 +116,7 @@ func (tester optionAddArgTester) assertErrEmptyArgString() func(*testing.T) {
 type newOptionTester struct {
 	iAliases     []string
 	iDescription string
-	oOption      *option
+	oOption      *Option
 	oErr         error
 }
 
@@ -169,7 +169,7 @@ type optionSetAliasesTester struct {
 
 func (tester optionSetAliasesTester) assertOptionAliases() func(*testing.T) {
 	return func(t *testing.T) {
-		sampleOption := option{aliases: []string{"foo"}}
+		sampleOption := Option{aliases: []string{"foo"}}
 		if gotErr := sampleOption.SetAliases(tester.iAliases); gotErr != nil {
 			t.Errorf("got %q error but should be nil", gotErr)
 		}
@@ -179,7 +179,7 @@ func (tester optionSetAliasesTester) assertOptionAliases() func(*testing.T) {
 
 func (tester optionSetAliasesTester) assertErrNoAliasProvided() func(*testing.T) {
 	return func(t *testing.T) {
-		sampleOption := option{aliases: []string{"foo"}}
+		sampleOption := Option{aliases: []string{"foo"}}
 		got := sampleOption.SetAliases(tester.iAliases)
 		if got == nil {
 			t.Fatal("no error returned with no provided aliases")
@@ -190,7 +190,7 @@ func (tester optionSetAliasesTester) assertErrNoAliasProvided() func(*testing.T)
 
 func (tester optionSetAliasesTester) assertErrEmptyAliasString() func(*testing.T) {
 	return func(t *testing.T) {
-		sampleOption := option{aliases: []string{"foo"}}
+		sampleOption := Option{aliases: []string{"foo"}}
 		got := sampleOption.SetAliases(tester.iAliases)
 		if got == nil {
 			t.Fatal("no error returned with an empty alias string")
@@ -239,7 +239,7 @@ func TestNewOption(t *testing.T) {
 	t.Run("baseline", newOptionTester{
 		iAliases:     []string{"foo"},
 		iDescription: "foo",
-		oOption: &option{
+		oOption: &Option{
 			aliases:     []string{"foo"},
 			Description: "foo",
 		},
@@ -247,14 +247,14 @@ func TestNewOption(t *testing.T) {
 	t.Run("multiple aliases", newOptionTester{
 		iAliases:     []string{"foo", "bar"},
 		iDescription: "foo",
-		oOption: &option{
+		oOption: &Option{
 			aliases:     []string{"foo", "bar"},
 			Description: "foo",
 		},
 	}.assertOption())
 	t.Run("empty description string", newOptionTester{
 		iAliases: []string{"foo"},
-		oOption:  &option{aliases: []string{"foo"}},
+		oOption:  &Option{aliases: []string{"foo"}},
 	}.assertOption())
 	t.Run("nil aliases", newOptionTester{
 		iDescription: "foo",

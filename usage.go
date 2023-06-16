@@ -144,6 +144,14 @@ func NewUsage(name string) (*Usage, error) {
 	}, nil
 }
 
+var defaultUsage *Usage
+
+func Init(name string) error {
+	u, err := NewUsage(name)
+	defaultUsage = u
+	return err
+}
+
 func chopSingleParagraph(p string, length int) []string {
 	p = strings.TrimSpace(p)
 	splitter := regexp.MustCompile(`\s+`)

@@ -344,6 +344,38 @@ func (tester newUsageTester) assertErrEmptyNameString() func(*testing.T) {
 	}
 }
 
+type initTester struct {
+	iName string
+	oErr  error
+}
+
+func (tester initTester) assertUsage() func(*testing.T) {
+	return func(t *testing.T) {
+		gotErr := Init(tester.iName)
+		got := defaultUsage
+		if gotErr != nil {
+			t.Errorf("got %q error but should be nil", gotErr)
+		}
+		if got == nil {
+			t.Error("default usage not set")
+		}
+	}
+}
+
+func (tester initTester) assertErrEmptyNameString() func(*testing.T) {
+	return func(t *testing.T) {
+		got := Init(tester.iName)
+		gotUsage := defaultUsage
+		if gotUsage != nil {
+			t.Errorf("got %+v usage but should be nil", gotUsage)
+		}
+		if got == nil {
+			t.Fatal("no error returned with an empty name string")
+		}
+		assertError(t, got, tester.oErr)
+	}
+}
+
 /***** Test Cases *********************************************/
 
 func TestUsageArgs(t *testing.T) {
@@ -1986,4 +2018,16 @@ func TestUsageLookup(t *testing.T) {
 		),
 	}.assertString())
 	t.Run("entry does not exist", usageLookupTester{}.assertEmptyString())
+}
+
+func TestInit(t *testing.T) {
+	t.Cleanup(func() {
+		defaultUsage = nil
+	})
+	t.Run("baseline", initTester{
+		iName: "foo",
+	}.assertUsage())
+	t.Run("empty name string", initTester{
+		oErr: emptyNameStringErr(),
+	}.assertErrEmptyNameString())
 }

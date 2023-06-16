@@ -507,6 +507,33 @@ func (tester argsTester) assertPanic() func(*testing.T) {
 	}
 }
 
+type optionsTester struct {
+	oOptions []Option
+	oPanic   error
+}
+
+func (tester optionsTester) assertUsageOptions() func(*testing.T) {
+	return func(t *testing.T) {
+		defaultUsage = &Usage{options: tester.oOptions}
+		got := Options()
+		assertOptionSlice(t, got, tester.oOptions)
+		defaultUsage = nil
+	}
+}
+
+func (tester optionsTester) assertPanic() func(*testing.T) {
+	return func(t *testing.T) {
+		defer func() {
+			r := recover()
+			if r == nil {
+				t.Fatal("no panic with uninitialized global usage")
+			}
+			assertPanic(t, r.(error), tester.oPanic)
+		}()
+		Options()
+	}
+}
+
 /***** Test Cases *********************************************/
 
 func TestUsageArgs(t *testing.T) {
@@ -2075,6 +2102,41 @@ func TestArgs(t *testing.T) {
 		oArgs: make([]string, 0),
 	}.assertUsageArgs())
 	t.Run("uninitialized", argsTester{
+		oPanic: uninitializedErr(),
+	}.assertPanic())
+}
+
+func TestOptions(t *testing.T) {
+	t.Run("baseline", optionsTester{
+		oOptions: []Option{{
+			aliases:     []string{"foo"},
+			Description: "foo",
+			args:        []string{"foo"},
+		}},
+	}.assertUsageOptions())
+	t.Run("multiple options", optionsTester{
+		oOptions: []Option{
+			{
+				aliases:     []string{"foo"},
+				Description: "foo",
+				args:        []string{"foo"},
+			},
+			{
+				aliases:     []string{"bar"},
+				Description: "bar",
+				args:        []string{"bar"},
+			},
+			{
+				aliases:     []string{"baz"},
+				Description: "baz",
+				args:        []string{"baz"},
+			},
+		},
+	}.assertUsageOptions())
+	t.Run("no options", optionsTester{
+		oOptions: make([]Option, 0),
+	}.assertUsageOptions())
+	t.Run("uninitialized", optionsTester{
 		oPanic: uninitializedErr(),
 	}.assertPanic())
 }

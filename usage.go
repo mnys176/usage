@@ -159,6 +159,13 @@ func Args() []string {
 	return defaultUsage.Args()
 }
 
+func Options() []Option {
+	if defaultUsage == nil {
+		panic(uninitializedErr())
+	}
+	return defaultUsage.Options()
+}
+
 func chopSingleParagraph(p string, length int) []string {
 	p = strings.TrimSpace(p)
 	splitter := regexp.MustCompile(`\s+`)

@@ -304,6 +304,102 @@ func (tester usageSetNameTester) assertErrEmptyNameString() func(*testing.T) {
 	}
 }
 
+type usageUsageTester struct {
+	oUsage string
+}
+
+func (tester usageUsageTester) assertString() func(*testing.T) {
+	return func(t *testing.T) {
+		summarySection, optionsSection, commandsSection := splitUsage(tester.oUsage)
+
+		var name string
+		var args argSlice
+		if summarySection != "" {
+			name, args = stringToNameAndArgs(summarySection)
+		}
+
+		var sampleOptions []Option
+		if optionsSection != "" {
+			sampleOptions = stringToMultipleOptions(optionsSection)
+		} else {
+			sampleOptions = make([]Option, 0)
+		}
+
+		var sampleEntries []Entry
+		if commandsSection != "" {
+			sampleEntries = stringToMultipleEntries(commandsSection)
+		}
+
+		sampleUsage := Usage{
+			name:    name,
+			options: sampleOptions,
+			entries: make(map[string]Entry),
+			args:    args,
+		}
+		for _, e := range sampleEntries {
+			sampleUsage.entries[e.name] = e
+		}
+
+		if got := sampleUsage.Usage(); got != tester.oUsage {
+			t.Errorf("string is %q but should be %q", got, tester.oUsage)
+		}
+	}
+}
+
+type usageLookupTester struct {
+	oUsage string
+}
+
+func (tester usageLookupTester) assertString() func(*testing.T) {
+	return func(t *testing.T) {
+		summarySection, optionsSection, _ := splitUsage(tester.oUsage)
+		splitter := regexp.MustCompile(`[\n:]\n` + Indent)
+		summary := strings.TrimSpace(splitter.Split(summarySection, 3)[1])
+
+		nameString, _ := splitNameAndArgs(summary)
+		parentName := strings.Split(nameString, " ")[0]
+
+		var name string
+		var args argSlice
+		if summarySection != "" {
+			name, args = stringToNameAndArgs(summarySection)
+		}
+
+		var sampleOptions []Option
+		if optionsSection != "" {
+			sampleOptions = stringToMultipleOptions(optionsSection)
+		} else {
+			sampleOptions = make([]Option, 0)
+		}
+
+		sampleEntry := Entry{
+			name:    name,
+			options: sampleOptions,
+			args:    args,
+		}
+
+		sampleUsage := Usage{
+			name:    parentName,
+			entries: map[string]Entry{sampleEntry.name: sampleEntry},
+			options: sampleOptions,
+			args:    args,
+		}
+
+		if got := sampleUsage.Lookup(sampleEntry.name); got != tester.oUsage {
+			t.Errorf("string is %q but should be %q", got, tester.oUsage)
+		}
+	}
+}
+
+func (tester usageLookupTester) assertEmptyString() func(*testing.T) {
+	return func(t *testing.T) {
+		sampleUsage := Usage{entries: make(map[string]Entry)}
+		if got := sampleUsage.Lookup("foo"); got != tester.oUsage {
+			t.Errorf("string is %q but should be empty", got)
+		}
+	}
+}
+
 type newUsageTester struct {
 	iName  string
 	oUsage *Usage
@@ -472,102 +568,6 @@ func TestUsageEntries(t *testing.T) {
 	t.Run("no entries", usageEntriesTester{
 		oEntries: make([]Entry, 0),
 	}.assertUsageEntries())
-}
-
-type usageUsageTester struct {
-	oUsage string
-}
-
-func (tester usageUsageTester) assertString() func(*testing.T) {
-	return func(t *testing.T) {
-		summarySection, optionsSection, commandsSection := splitUsage(tester.oUsage)
-
-		var name string
-		var args argSlice
-		if summarySection != "" {
-			name, args = stringToNameAndArgs(summarySection)
-		}
-
-		var sampleOptions []Option
-		if optionsSection != "" {
-			sampleOptions = stringToMultipleOptions(optionsSection)
-		} else {
-			sampleOptions = make([]Option, 0)
-		}
-
-		var sampleEntries []Entry
-		if commandsSection != "" {
-			sampleEntries = stringToMultipleEntries(commandsSection)
-		}
-
-		sampleUsage := Usage{
-			name:    name,
-			options: sampleOptions,
-			entries: make(map[string]Entry),
-			args:    args,
-		}
-		for _, e := range sampleEntries {
-			sampleUsage.entries[e.name] = e
-		}
-
-		if got := sampleUsage.Usage(); got != tester.oUsage {
-			t.Errorf("string is %q but should be %q", got, tester.oUsage)
-		}
-	}
-}
-
-type usageLookupTester struct {
-	oUsage string
-}
-
-func (tester usageLookupTester) assertString() func(*testing.T) {
-	return func(t *testing.T) {
-		summarySection, optionsSection, _ := splitUsage(tester.oUsage)
-		splitter := regexp.MustCompile(`[\n:]\n` + Indent)
-		summary := strings.TrimSpace(splitter.Split(summarySection, 3)[1])
-
-		nameString, _ := splitNameAndArgs(summary)
-		parentName := strings.Split(nameString, " ")[0]
-
-		var name string
-		var args argSlice
-		if summarySection != "" {
-			name, args = stringToNameAndArgs(summarySection)
-		}
-
-		var sampleOptions []Option
-		if optionsSection != "" {
-			sampleOptions = stringToMultipleOptions(optionsSection)
-		} else {
-			sampleOptions = make([]Option, 0)
-		}
-
-		sampleEntry := Entry{
-			name:    name,
-			options: sampleOptions,
-			args:    args,
-		}
-
-		sampleUsage := Usage{
-			name:    parentName,
-			entries: map[string]Entry{sampleEntry.name: sampleEntry},
-			options: sampleOptions,
-			args:    args,
-		}
-
-		if got := sampleUsage.Lookup(sampleEntry.name); got != tester.oUsage {
-			t.Errorf("string is %q but should be %q", got, tester.oUsage)
-		}
-	}
-}
-
-func (tester usageLookupTester) assertEmptyString() func(*testing.T) {
-	return func(t *testing.T) {
-		sampleUsage := Usage{entries: make(map[string]Entry)}
-		if got := sampleUsage.Lookup("foo"); got != tester.oUsage {
-			t.Errorf("string is %q but should be empty", got)
-		}
-	}
 }
 
 func TestUsageAddArg(t *testing.T) {

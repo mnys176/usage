@@ -77,6 +77,12 @@ func assertError(t *testing.T, got, want error) {
 	}
 }
 
+func assertPanic(t *testing.T, got, want error) {
+	if !errors.Is(got, want) {
+		t.Errorf("got %q panic but wanted %q", got, want)
+	}
+}
+
 func assertEntryStruct(t *testing.T, got, want *Entry) {
 	if got.name != want.name {
 		t.Errorf("name is %q but should be %q", got.name, want.name)
@@ -455,6 +461,7 @@ func (tester initTester) assertUsage() func(*testing.T) {
 		if got == nil {
 			t.Error("default usage not set")
 		}
+		defaultUsage = nil
 	}
 }
 
@@ -469,6 +476,34 @@ func (tester initTester) assertErrEmptyNameString() func(*testing.T) {
 			t.Fatal("no error returned with an empty name string")
 		}
 		assertError(t, got, tester.oErr)
+		defaultUsage = nil
+	}
+}
+
+type argsTester struct {
+	oArgs  []string
+	oPanic error
+}
+
+func (tester argsTester) assertUsageArgs() func(*testing.T) {
+	return func(t *testing.T) {
+		defaultUsage = &Usage{args: tester.oArgs}
+		got := Args()
+		assertArgSlice(t, got, tester.oArgs)
+		defaultUsage = nil
+	}
+}
+
+func (tester argsTester) assertPanic() func(*testing.T) {
+	return func(t *testing.T) {
+		defer func() {
+			r := recover()
+			if r == nil {
+				t.Fatal("no panic with uninitialized global usage")
+			}
+			assertPanic(t, r.(error), tester.oPanic)
+		}()
+		Args()
 	}
 }
 
@@ -2021,13 +2056,25 @@ func TestUsageLookup(t *testing.T) {
 }
 
 func TestInit(t *testing.T) {
-	t.Cleanup(func() {
-		defaultUsage = nil
-	})
 	t.Run("baseline", initTester{
 		iName: "foo",
 	}.assertUsage())
 	t.Run("empty name string", initTester{
 		oErr: emptyNameStringErr(),
 	}.assertErrEmptyNameString())
+}
+
+func TestArgs(t *testing.T) {
+	t.Run("baseline", argsTester{
+		oArgs: []string{"foo"},
+	}.assertUsageArgs())
+	t.Run("multiple args", argsTester{
+		oArgs: []string{"foo", "bar", "baz"},
+	}.assertUsageArgs())
+	t.Run("no args", argsTester{
+		oArgs: make([]string, 0),
+	}.assertUsageArgs())
+	t.Run("uninitialized", argsTester{
+		oPanic: uninitializedErr(),
+	}.assertPanic())
 }

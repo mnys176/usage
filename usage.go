@@ -152,6 +152,13 @@ func Init(name string) error {
 	return err
 }
 
+func Args() []string {
+	if defaultUsage == nil {
+		panic(uninitializedErr())
+	}
+	return defaultUsage.Args()
+}
+
 func chopSingleParagraph(p string, length int) []string {
 	p = strings.TrimSpace(p)
 	splitter := regexp.MustCompile(`\s+`)

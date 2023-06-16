@@ -71,3 +71,9 @@ func emptyArgStringErr() error {
 	e.Err = errors.New("arg string must not be empty")
 	return e
 }
+
+func uninitializedErr() error {
+	e := newUsageError()
+	e.Err = errors.New("global usage uninitialized")
+	return e
+}

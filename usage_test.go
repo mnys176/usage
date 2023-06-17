@@ -105,6 +105,40 @@ func assertEntrySlice(t *testing.T, got, want []Entry) {
 
 /***** Testers ************************************************/
 
+type initTester struct {
+	iName string
+	oErr  error
+}
+
+func (tester initTester) assertUsage() func(*testing.T) {
+	return func(t *testing.T) {
+		gotErr := Init(tester.iName)
+		got := defaultUsage
+		if gotErr != nil {
+			t.Errorf("got %q error but should be nil", gotErr)
+		}
+		if got == nil {
+			t.Error("default usage not set")
+		}
+		defaultUsage = nil
+	}
+}
+
+func (tester initTester) assertErrEmptyNameString() func(*testing.T) {
+	return func(t *testing.T) {
+		got := Init(tester.iName)
+		gotUsage := defaultUsage
+		if gotUsage != nil {
+			t.Errorf("got %+v usage but should be nil", gotUsage)
+		}
+		if got == nil {
+			t.Fatal("no error returned with an empty name string")
+		}
+		assertError(t, got, tester.oErr)
+		defaultUsage = nil
+	}
+}
+
 type argsTester struct {
 	oArgs  []string
 	oPanic error
@@ -169,12 +203,13 @@ func (tester entriesTester) assertUsageEntries() func(*testing.T) {
 		sort.Slice(tester.oEntries, func(i, j int) bool {
 			return tester.oEntries[i].name < tester.oEntries[j].name
 		})
-		sampleUsage := Usage{entries: make(map[string]Entry)}
+		defaultUsage = &Usage{entries: make(map[string]Entry)}
 		for _, sampleEntry := range tester.oEntries {
-			sampleUsage.entries[sampleEntry.name] = sampleEntry
+			defaultUsage.entries[sampleEntry.name] = sampleEntry
 		}
-		got := sampleUsage.Entries()
+		got := Entries()
 		assertEntrySlice(t, got, tester.oEntries)
+		defaultUsage = nil
 	}
 }
 
@@ -187,44 +222,47 @@ func (tester entriesTester) assertPanic() func(*testing.T) {
 			}
 			assertPanic(t, r.(error), tester.oPanic)
 		}()
-		Options()
+		Entries()
 	}
 }
 
-type usageAddArgTester struct {
-	iArg string
-	oErr error
+type addArgTester struct {
+	iArg   string
+	oErr   error
+	oPanic error
 }
 
-func (tester usageAddArgTester) assertUsageArgs() func(*testing.T) {
+func (tester addArgTester) assertUsageArgs() func(*testing.T) {
 	return func(t *testing.T) {
 		iterations := 3
 		tempArgs := make([]string, 0, iterations)
-		sampleUsage := Usage{args: make([]string, 0)}
+		defaultUsage = &Usage{args: make([]string, 0)}
 		for i := 1; i <= iterations; i++ {
-			if gotErr := sampleUsage.AddArg(tester.iArg); gotErr != nil {
+			if gotErr := AddArg(tester.iArg); gotErr != nil {
 				t.Errorf("got %q error but should be nil", gotErr)
 			}
 			tempArgs = append(tempArgs, tester.iArg)
 		}
-		assertArgSlice(t, sampleUsage.args, tempArgs)
+		assertArgSlice(t, defaultUsage.args, tempArgs)
+		defaultUsage = nil
 	}
 }
 
-func (tester usageAddArgTester) assertErrEmptyArgString() func(*testing.T) {
+func (tester addArgTester) assertErrEmptyArgString() func(*testing.T) {
 	return func(t *testing.T) {
-		sampleUsage := Usage{args: make([]string, 0)}
-		got := sampleUsage.AddArg(tester.iArg)
+		defaultUsage = &Usage{args: make([]string, 0)}
+		got := AddArg(tester.iArg)
 		if got == nil {
 			t.Fatal("no error returned with an empty arg string")
 		}
 		assertError(t, got, tester.oErr)
+		defaultUsage = nil
 	}
 }
 
-func (tester usageAddArgTester) assertErrExistingEntries() func(*testing.T) {
+func (tester addArgTester) assertErrExistingEntries() func(*testing.T) {
 	return func(t *testing.T) {
-		sampleUsage := Usage{
+		defaultUsage = &Usage{
 			entries: map[string]Entry{
 				"foo": {
 					name:        "foo",
@@ -240,89 +278,136 @@ func (tester usageAddArgTester) assertErrExistingEntries() func(*testing.T) {
 			args: make([]string, 0),
 		}
 
-		got := sampleUsage.AddArg(tester.iArg)
+		got := AddArg(tester.iArg)
 		if got == nil {
 			t.Fatal("no error returned with existing entries")
 		}
 		assertError(t, got, tester.oErr)
+		defaultUsage = nil
 	}
 }
 
-type usageAddOptionTester struct {
-	iOption *Option
-	oErr    error
+func (tester addArgTester) assertPanic() func(*testing.T) {
+	return func(t *testing.T) {
+		defer func() {
+			r := recover()
+			if r == nil {
+				t.Fatal("no panic with uninitialized global usage")
+			}
+			assertPanic(t, r.(error), tester.oPanic)
+		}()
+		AddArg(tester.iArg)
+	}
 }
 
-func (tester usageAddOptionTester) assertUsageOptions() func(*testing.T) {
+type addOptionTester struct {
+	iOption *Option
+	oErr    error
+	oPanic  error
+}
+
+func (tester addOptionTester) assertUsageOptions() func(*testing.T) {
 	return func(t *testing.T) {
 		iterations := 3
 		tempOptions := make([]Option, 0, iterations)
-		sampleUsage := Usage{options: make([]Option, 0)}
+		defaultUsage = &Usage{options: make([]Option, 0)}
 		for i := 1; i <= iterations; i++ {
-			if gotErr := sampleUsage.AddOption(tester.iOption); gotErr != nil {
+			if gotErr := AddOption(tester.iOption); gotErr != nil {
 				t.Errorf("got %q error but should be nil", gotErr)
 			}
 			tempOptions = append(tempOptions, *tester.iOption)
 		}
-		assertOptionSlice(t, sampleUsage.options, tempOptions)
+		assertOptionSlice(t, defaultUsage.options, tempOptions)
+		defaultUsage = nil
 	}
 }
 
-func (tester usageAddOptionTester) assertErrNoOptionProvided() func(*testing.T) {
+func (tester addOptionTester) assertErrNoOptionProvided() func(*testing.T) {
 	return func(t *testing.T) {
-		sampleUsage := Usage{options: make([]Option, 0)}
-		got := sampleUsage.AddOption(tester.iOption)
+		defaultUsage = &Usage{options: make([]Option, 0)}
+		got := AddOption(tester.iOption)
 		if got == nil {
 			t.Fatal("no error returned with nil option")
 		}
 		assertError(t, got, tester.oErr)
+		defaultUsage = nil
 	}
 }
 
-type usageAddEntryTester struct {
-	iEntry *Entry
-	oErr   error
+func (tester addOptionTester) assertPanic() func(*testing.T) {
+	return func(t *testing.T) {
+		defer func() {
+			r := recover()
+			if r == nil {
+				t.Fatal("no panic with uninitialized global usage")
+			}
+			assertPanic(t, r.(error), tester.oPanic)
+		}()
+		AddOption(tester.iOption)
+	}
 }
 
-func (tester usageAddEntryTester) assertUsageEntries() func(*testing.T) {
+type addEntryTester struct {
+	iEntry *Entry
+	oErr   error
+	oPanic error
+}
+
+func (tester addEntryTester) assertUsageEntries() func(*testing.T) {
 	return func(t *testing.T) {
-		sampleUsage := Usage{entries: make(map[string]Entry)}
-		if gotErr := sampleUsage.AddEntry(tester.iEntry); gotErr != nil {
+		defaultUsage = &Usage{entries: make(map[string]Entry)}
+		if gotErr := AddEntry(tester.iEntry); gotErr != nil {
 			t.Errorf("got %q error but should be nil", gotErr)
 		}
 		sampleEntries := make([]Entry, 0)
-		for _, sampleEntry := range sampleUsage.entries {
+		for _, sampleEntry := range defaultUsage.entries {
 			sampleEntries = append(sampleEntries, sampleEntry)
 		}
 		sort.Slice(sampleEntries, func(i, j int) bool {
 			return sampleEntries[i].name < sampleEntries[j].name
 		})
 		assertEntrySlice(t, sampleEntries, []Entry{*tester.iEntry})
+		defaultUsage = nil
 	}
 }
 
-func (tester usageAddEntryTester) assertErrNoEntryProvided() func(*testing.T) {
+func (tester addEntryTester) assertErrNoEntryProvided() func(*testing.T) {
 	return func(t *testing.T) {
-		sampleUsage := Usage{entries: make(map[string]Entry)}
-		got := sampleUsage.AddEntry(tester.iEntry)
+		defaultUsage = &Usage{entries: make(map[string]Entry)}
+		got := AddEntry(tester.iEntry)
 		if got == nil {
 			t.Fatal("no error returned with nil entry")
 		}
 		assertError(t, got, tester.oErr)
+		defaultUsage = nil
 	}
 }
 
-func (tester usageAddEntryTester) assertErrExistingArgs() func(*testing.T) {
+func (tester addEntryTester) assertErrExistingArgs() func(*testing.T) {
 	return func(t *testing.T) {
-		sampleUsage := Usage{
+		defaultUsage = &Usage{
 			entries: make(map[string]Entry),
 			args:    []string{"foo"},
 		}
-		got := sampleUsage.AddEntry(tester.iEntry)
+		got := AddEntry(tester.iEntry)
 		if got == nil {
 			t.Fatal("no error returned with existing args")
 		}
 		assertError(t, got, tester.oErr)
+		defaultUsage = nil
+	}
+}
+
+func (tester addEntryTester) assertPanic() func(*testing.T) {
+	return func(t *testing.T) {
+		defer func() {
+			r := recover()
+			if r == nil {
+				t.Fatal("no panic with uninitialized global usage")
+			}
+			assertPanic(t, r.(error), tester.oPanic)
+		}()
+		AddEntry(tester.iEntry)
 	}
 }
 
@@ -490,40 +575,6 @@ func (tester newUsageTester) assertErrEmptyNameString() func(*testing.T) {
 	}
 }
 
-type initTester struct {
-	iName string
-	oErr  error
-}
-
-func (tester initTester) assertUsage() func(*testing.T) {
-	return func(t *testing.T) {
-		gotErr := Init(tester.iName)
-		got := defaultUsage
-		if gotErr != nil {
-			t.Errorf("got %q error but should be nil", gotErr)
-		}
-		if got == nil {
-			t.Error("default usage not set")
-		}
-		defaultUsage = nil
-	}
-}
-
-func (tester initTester) assertErrEmptyNameString() func(*testing.T) {
-	return func(t *testing.T) {
-		got := Init(tester.iName)
-		gotUsage := defaultUsage
-		if gotUsage != nil {
-			t.Errorf("got %+v usage but should be nil", gotUsage)
-		}
-		if got == nil {
-			t.Fatal("no error returned with an empty name string")
-		}
-		assertError(t, got, tester.oErr)
-		defaultUsage = nil
-	}
-}
-
 /***** Test Cases *********************************************/
 
 func TestInit(t *testing.T) {
@@ -640,34 +691,40 @@ func TestEntries(t *testing.T) {
 	}.assertPanic())
 }
 
-func TestUsageAddArg(t *testing.T) {
-	t.Run("baseline", usageAddArgTester{
+func TestAddArg(t *testing.T) {
+	t.Run("baseline", addArgTester{
 		iArg: "foo",
 	}.assertUsageArgs())
-	t.Run("empty arg string", usageAddArgTester{
+	t.Run("empty arg string", addArgTester{
 		oErr: emptyArgStringErr(),
 	}.assertErrEmptyArgString())
-	t.Run("existing entries", usageAddArgTester{
+	t.Run("existing entries", addArgTester{
 		iArg: "foo",
 		oErr: existingEntriesErr(),
 	}.assertErrExistingEntries())
+	t.Run("uninitialized", addArgTester{
+		oPanic: uninitializedErr(),
+	}.assertPanic())
 }
 
-func TestUsageAddOption(t *testing.T) {
-	t.Run("baseline", usageAddOptionTester{
+func TestAddOption(t *testing.T) {
+	t.Run("baseline", addOptionTester{
 		iOption: &Option{
 			aliases:     []string{"foo"},
 			Description: "foo",
 			args:        []string{"foo"},
 		},
 	}.assertUsageOptions())
-	t.Run("nil option", usageAddOptionTester{
+	t.Run("nil option", addOptionTester{
 		oErr: nilOptionProvidedErr(),
 	}.assertErrNoOptionProvided())
+	t.Run("uninitialized", addOptionTester{
+		oPanic: uninitializedErr(),
+	}.assertPanic())
 }
 
-func TestUsageAddEntry(t *testing.T) {
-	t.Run("baseline", usageAddEntryTester{
+func TestAddEntry(t *testing.T) {
+	t.Run("baseline", addEntryTester{
 		iEntry: &Entry{
 			name:        "foo",
 			Description: "foo",
@@ -679,7 +736,7 @@ func TestUsageAddEntry(t *testing.T) {
 			args: []string{"foo"},
 		},
 	}.assertUsageEntries())
-	t.Run("existing args", usageAddEntryTester{
+	t.Run("existing args", addEntryTester{
 		iEntry: &Entry{
 			name:        "foo",
 			Description: "foo",
@@ -692,9 +749,12 @@ func TestUsageAddEntry(t *testing.T) {
 		},
 		oErr: existingArgsErr(),
 	}.assertErrExistingArgs())
-	t.Run("nil entry", usageAddEntryTester{
+	t.Run("nil entry", addEntryTester{
 		oErr: nilEntryProvidedErr(),
 	}.assertErrNoEntryProvided())
+	t.Run("uninitialized", addEntryTester{
+		oPanic: uninitializedErr(),
+	}.assertPanic())
 }
 
 func TestNewUsage(t *testing.T) {

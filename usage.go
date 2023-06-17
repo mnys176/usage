@@ -166,6 +166,34 @@ func Options() []Option {
 	return defaultUsage.Options()
 }
 
+func Entries() []Entry {
+	if defaultUsage == nil {
+		panic(uninitializedErr())
+	}
+	return defaultUsage.Entries()
+}
+
+func AddArg(arg string) error {
+	if defaultUsage == nil {
+		panic(uninitializedErr())
+	}
+	return defaultUsage.AddArg(arg)
+}
+
+func AddOption(o *Option) error {
+	if defaultUsage == nil {
+		panic(uninitializedErr())
+	}
+	return defaultUsage.AddOption(o)
+}
+
+func AddEntry(e *Entry) error {
+	if defaultUsage == nil {
+		panic(uninitializedErr())
+	}
+	return defaultUsage.AddEntry(e)
+}
+
 func chopSingleParagraph(p string, length int) []string {
 	p = strings.TrimSpace(p)
 	splitter := regexp.MustCompile(`\s+`)

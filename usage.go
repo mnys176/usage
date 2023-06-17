@@ -194,6 +194,27 @@ func AddEntry(e *Entry) error {
 	return defaultUsage.AddEntry(e)
 }
 
+func SetName(name string) error {
+	if defaultUsage == nil {
+		panic(uninitializedErr())
+	}
+	return defaultUsage.SetName(name)
+}
+
+func Global() string {
+	if defaultUsage == nil {
+		panic(uninitializedErr())
+	}
+	return defaultUsage.Usage()
+}
+
+func Lookup(entry string) string {
+	if defaultUsage == nil {
+		panic(uninitializedErr())
+	}
+	return defaultUsage.Lookup(entry)
+}
+
 func chopSingleParagraph(p string, length int) []string {
 	p = strings.TrimSpace(p)
 	splitter := regexp.MustCompile(`\s+`)

@@ -65,7 +65,7 @@ func (u *Usage) AddEntry(e *Entry) error {
 	return nil
 }
 
-func (u Usage) Usage() string {
+func (u Usage) Global() string {
 	hasEntries, hasOptions, hasArgs := len(u.entries) > 0, len(u.options) > 0, len(u.args) > 0
 
 	var usage strings.Builder
@@ -205,7 +205,7 @@ func Global() string {
 	if defaultUsage == nil {
 		panic(uninitializedErr())
 	}
-	return defaultUsage.Usage()
+	return defaultUsage.Global()
 }
 
 func Lookup(entry string) string {

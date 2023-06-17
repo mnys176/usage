@@ -50,7 +50,7 @@ func splitUsage(usage string) (string, string, string) {
 	return summarySection, optionsSection, commandsSection
 }
 
-func stringToNameAndArgs(summarySection string) (string, argSlice) {
+func stringToNameAndArgs(summarySection string) (string, ArgSlice) {
 	splitter := regexp.MustCompile(`[\n:]\n` + Indent)
 	summary := strings.TrimSpace(splitter.Split(summarySection, 3)[1])
 	nameString, argString := splitNameAndArgs(summary)
@@ -63,17 +63,23 @@ func stringToNameAndArgs(summarySection string) (string, argSlice) {
 	}
 
 	if strings.HasPrefix(argString, "<command>") {
-		return name, newArgSlice("")
+		return name, NewArgSlice("")
 	}
 	if argsStart := strings.IndexRune(argString, '<'); argsStart > -1 {
-		return name, newArgSlice(argString[argsStart:])
+		return name, NewArgSlice(argString[argsStart:])
 	}
-	return name, newArgSlice("")
+	return name, NewArgSlice("")
 }
 
 func assertError(t *testing.T, got, want error) {
 	if !errors.Is(got, want) {
 		t.Errorf("got %q error but wanted %q", got, want)
+	}
+}
+
+func assertPanic(t *testing.T, got, want error) {
+	if !errors.Is(got, want) {
+		t.Errorf("got %q panic but wanted %q", got, want)
 	}
 }
 
@@ -99,82 +105,164 @@ func assertEntrySlice(t *testing.T, got, want []Entry) {
 
 /***** Testers ************************************************/
 
-type usageArgsTester struct {
-	oArgs []string
+type initTester struct {
+	iName string
+	oErr  error
 }
 
-func (tester usageArgsTester) assertUsageArgs() func(*testing.T) {
+func (tester initTester) assertUsage() func(*testing.T) {
 	return func(t *testing.T) {
-		sampleUsage := Usage{args: tester.oArgs}
-		got := sampleUsage.Args()
+		gotErr := Init(tester.iName)
+		got := defaultUsage
+		if gotErr != nil {
+			t.Errorf("got %q error but should be nil", gotErr)
+		}
+		if got == nil {
+			t.Error("default usage not set")
+		}
+		defaultUsage = nil
+	}
+}
+
+func (tester initTester) assertErrEmptyNameString() func(*testing.T) {
+	return func(t *testing.T) {
+		got := Init(tester.iName)
+		gotUsage := defaultUsage
+		if gotUsage != nil {
+			t.Errorf("got %+v usage but should be nil", gotUsage)
+		}
+		if got == nil {
+			t.Fatal("no error returned with an empty name string")
+		}
+		assertError(t, got, tester.oErr)
+		defaultUsage = nil
+	}
+}
+
+type argsTester struct {
+	oArgs  []string
+	oPanic error
+}
+
+func (tester argsTester) assertUsageArgs() func(*testing.T) {
+	return func(t *testing.T) {
+		defaultUsage = &Usage{args: tester.oArgs}
+		got := Args()
 		assertArgSlice(t, got, tester.oArgs)
+		defaultUsage = nil
 	}
 }
 
-type usageOptionsTester struct {
-	oOptions []Option
-}
-
-func (tester usageOptionsTester) assertUsageOptions() func(*testing.T) {
+func (tester argsTester) assertPanic() func(*testing.T) {
 	return func(t *testing.T) {
-		sampleUsage := Usage{options: tester.oOptions}
-		got := sampleUsage.Options()
-		assertOptionSlice(t, got, tester.oOptions)
+		defer func() {
+			r := recover()
+			if r == nil {
+				t.Fatal("no panic with uninitialized global usage")
+			}
+			assertPanic(t, r.(error), tester.oPanic)
+		}()
+		Args()
 	}
 }
 
-type usageEntriesTester struct {
-	oEntries []Entry
+type optionsTester struct {
+	oOptions []Option
+	oPanic   error
 }
 
-func (tester usageEntriesTester) assertUsageEntries() func(*testing.T) {
+func (tester optionsTester) assertUsageOptions() func(*testing.T) {
+	return func(t *testing.T) {
+		defaultUsage = &Usage{options: tester.oOptions}
+		got := Options()
+		assertOptionSlice(t, got, tester.oOptions)
+		defaultUsage = nil
+	}
+}
+
+func (tester optionsTester) assertPanic() func(*testing.T) {
+	return func(t *testing.T) {
+		defer func() {
+			r := recover()
+			if r == nil {
+				t.Fatal("no panic with uninitialized global usage")
+			}
+			assertPanic(t, r.(error), tester.oPanic)
+		}()
+		Options()
+	}
+}
+
+type entriesTester struct {
+	oEntries []Entry
+	oPanic   error
+}
+
+func (tester entriesTester) assertUsageEntries() func(*testing.T) {
 	return func(t *testing.T) {
 		sort.Slice(tester.oEntries, func(i, j int) bool {
 			return tester.oEntries[i].name < tester.oEntries[j].name
 		})
-		sampleUsage := Usage{entries: make(map[string]Entry)}
+		defaultUsage = &Usage{entries: make(map[string]Entry)}
 		for _, sampleEntry := range tester.oEntries {
-			sampleUsage.entries[sampleEntry.name] = sampleEntry
+			defaultUsage.entries[sampleEntry.name] = sampleEntry
 		}
-		got := sampleUsage.Entries()
+		got := Entries()
 		assertEntrySlice(t, got, tester.oEntries)
+		defaultUsage = nil
 	}
 }
 
-type usageAddArgTester struct {
-	iArg string
-	oErr error
+func (tester entriesTester) assertPanic() func(*testing.T) {
+	return func(t *testing.T) {
+		defer func() {
+			r := recover()
+			if r == nil {
+				t.Fatal("no panic with uninitialized global usage")
+			}
+			assertPanic(t, r.(error), tester.oPanic)
+		}()
+		Entries()
+	}
 }
 
-func (tester usageAddArgTester) assertUsageArgs() func(*testing.T) {
+type addArgTester struct {
+	iArg   string
+	oErr   error
+	oPanic error
+}
+
+func (tester addArgTester) assertUsageArgs() func(*testing.T) {
 	return func(t *testing.T) {
 		iterations := 3
 		tempArgs := make([]string, 0, iterations)
-		sampleUsage := Usage{args: make([]string, 0)}
+		defaultUsage = &Usage{args: make([]string, 0)}
 		for i := 1; i <= iterations; i++ {
-			if gotErr := sampleUsage.AddArg(tester.iArg); gotErr != nil {
+			if gotErr := AddArg(tester.iArg); gotErr != nil {
 				t.Errorf("got %q error but should be nil", gotErr)
 			}
 			tempArgs = append(tempArgs, tester.iArg)
 		}
-		assertArgSlice(t, sampleUsage.args, tempArgs)
+		assertArgSlice(t, defaultUsage.args, tempArgs)
+		defaultUsage = nil
 	}
 }
 
-func (tester usageAddArgTester) assertErrEmptyArgString() func(*testing.T) {
+func (tester addArgTester) assertErrEmptyArgString() func(*testing.T) {
 	return func(t *testing.T) {
-		sampleUsage := Usage{args: make([]string, 0)}
-		got := sampleUsage.AddArg(tester.iArg)
+		defaultUsage = &Usage{args: make([]string, 0)}
+		got := AddArg(tester.iArg)
 		if got == nil {
 			t.Fatal("no error returned with an empty arg string")
 		}
 		assertError(t, got, tester.oErr)
+		defaultUsage = nil
 	}
 }
 
-func (tester usageAddArgTester) assertErrExistingEntries() func(*testing.T) {
+func (tester addArgTester) assertErrExistingEntries() func(*testing.T) {
 	return func(t *testing.T) {
-		sampleUsage := Usage{
+		defaultUsage = &Usage{
 			entries: map[string]Entry{
 				"foo": {
 					name:        "foo",
@@ -190,117 +278,309 @@ func (tester usageAddArgTester) assertErrExistingEntries() func(*testing.T) {
 			args: make([]string, 0),
 		}
 
-		got := sampleUsage.AddArg(tester.iArg)
+		got := AddArg(tester.iArg)
 		if got == nil {
 			t.Fatal("no error returned with existing entries")
 		}
 		assertError(t, got, tester.oErr)
+		defaultUsage = nil
 	}
 }
 
-type usageAddOptionTester struct {
-	iOption *Option
-	oErr    error
+func (tester addArgTester) assertPanic() func(*testing.T) {
+	return func(t *testing.T) {
+		defer func() {
+			r := recover()
+			if r == nil {
+				t.Fatal("no panic with uninitialized global usage")
+			}
+			assertPanic(t, r.(error), tester.oPanic)
+		}()
+		AddArg(tester.iArg)
+	}
 }
 
-func (tester usageAddOptionTester) assertUsageOptions() func(*testing.T) {
+type addOptionTester struct {
+	iOption *Option
+	oErr    error
+	oPanic  error
+}
+
+func (tester addOptionTester) assertUsageOptions() func(*testing.T) {
 	return func(t *testing.T) {
 		iterations := 3
 		tempOptions := make([]Option, 0, iterations)
-		sampleUsage := Usage{options: make([]Option, 0)}
+		defaultUsage = &Usage{options: make([]Option, 0)}
 		for i := 1; i <= iterations; i++ {
-			if gotErr := sampleUsage.AddOption(tester.iOption); gotErr != nil {
+			if gotErr := AddOption(tester.iOption); gotErr != nil {
 				t.Errorf("got %q error but should be nil", gotErr)
 			}
 			tempOptions = append(tempOptions, *tester.iOption)
 		}
-		assertOptionSlice(t, sampleUsage.options, tempOptions)
+		assertOptionSlice(t, defaultUsage.options, tempOptions)
+		defaultUsage = nil
 	}
 }
 
-func (tester usageAddOptionTester) assertErrNoOptionProvided() func(*testing.T) {
+func (tester addOptionTester) assertErrNoOptionProvided() func(*testing.T) {
 	return func(t *testing.T) {
-		sampleUsage := Usage{options: make([]Option, 0)}
-		got := sampleUsage.AddOption(tester.iOption)
+		defaultUsage = &Usage{options: make([]Option, 0)}
+		got := AddOption(tester.iOption)
 		if got == nil {
 			t.Fatal("no error returned with nil option")
 		}
 		assertError(t, got, tester.oErr)
+		defaultUsage = nil
 	}
 }
 
-type usageAddEntryTester struct {
-	iEntry *Entry
-	oErr   error
+func (tester addOptionTester) assertPanic() func(*testing.T) {
+	return func(t *testing.T) {
+		defer func() {
+			r := recover()
+			if r == nil {
+				t.Fatal("no panic with uninitialized global usage")
+			}
+			assertPanic(t, r.(error), tester.oPanic)
+		}()
+		AddOption(tester.iOption)
+	}
 }
 
-func (tester usageAddEntryTester) assertUsageEntries() func(*testing.T) {
+type addEntryTester struct {
+	iEntry *Entry
+	oErr   error
+	oPanic error
+}
+
+func (tester addEntryTester) assertUsageEntries() func(*testing.T) {
 	return func(t *testing.T) {
-		sampleUsage := Usage{entries: make(map[string]Entry)}
-		if gotErr := sampleUsage.AddEntry(tester.iEntry); gotErr != nil {
+		defaultUsage = &Usage{entries: make(map[string]Entry)}
+		if gotErr := AddEntry(tester.iEntry); gotErr != nil {
 			t.Errorf("got %q error but should be nil", gotErr)
 		}
 		sampleEntries := make([]Entry, 0)
-		for _, sampleEntry := range sampleUsage.entries {
+		for _, sampleEntry := range defaultUsage.entries {
 			sampleEntries = append(sampleEntries, sampleEntry)
 		}
 		sort.Slice(sampleEntries, func(i, j int) bool {
 			return sampleEntries[i].name < sampleEntries[j].name
 		})
 		assertEntrySlice(t, sampleEntries, []Entry{*tester.iEntry})
+		defaultUsage = nil
 	}
 }
 
-func (tester usageAddEntryTester) assertErrNoEntryProvided() func(*testing.T) {
+func (tester addEntryTester) assertErrNoEntryProvided() func(*testing.T) {
 	return func(t *testing.T) {
-		sampleUsage := Usage{entries: make(map[string]Entry)}
-		got := sampleUsage.AddEntry(tester.iEntry)
+		defaultUsage = &Usage{entries: make(map[string]Entry)}
+		got := AddEntry(tester.iEntry)
 		if got == nil {
 			t.Fatal("no error returned with nil entry")
 		}
 		assertError(t, got, tester.oErr)
+		defaultUsage = nil
 	}
 }
 
-func (tester usageAddEntryTester) assertErrExistingArgs() func(*testing.T) {
+func (tester addEntryTester) assertErrExistingArgs() func(*testing.T) {
 	return func(t *testing.T) {
-		sampleUsage := Usage{
+		defaultUsage = &Usage{
 			entries: make(map[string]Entry),
 			args:    []string{"foo"},
 		}
-		got := sampleUsage.AddEntry(tester.iEntry)
+		got := AddEntry(tester.iEntry)
 		if got == nil {
 			t.Fatal("no error returned with existing args")
 		}
 		assertError(t, got, tester.oErr)
+		defaultUsage = nil
 	}
 }
 
-type usageSetNameTester struct {
-	iName string
-	oErr  error
+func (tester addEntryTester) assertPanic() func(*testing.T) {
+	return func(t *testing.T) {
+		defer func() {
+			r := recover()
+			if r == nil {
+				t.Fatal("no panic with uninitialized global usage")
+			}
+			assertPanic(t, r.(error), tester.oPanic)
+		}()
+		AddEntry(tester.iEntry)
+	}
 }
 
-func (tester usageSetNameTester) assertUsageName() func(*testing.T) {
+type setNameTester struct {
+	iName  string
+	oErr   error
+	oPanic error
+}
+
+func (tester setNameTester) assertUsageName() func(*testing.T) {
 	return func(t *testing.T) {
-		sampleUsage := Usage{name: "bar"}
-		if gotErr := sampleUsage.SetName(tester.iName); gotErr != nil {
+		defaultUsage = &Usage{name: "bar"}
+		if gotErr := SetName(tester.iName); gotErr != nil {
 			t.Errorf("got %q error but should be nil", gotErr)
 		}
-		if sampleUsage.name != tester.iName {
-			t.Errorf("name is %q but should be %q", sampleUsage.name, tester.iName)
+		if defaultUsage.name != tester.iName {
+			t.Errorf("name is %q but should be %q", defaultUsage.name, tester.iName)
 		}
+		defaultUsage = nil
 	}
 }
 
-func (tester usageSetNameTester) assertErrEmptyNameString() func(*testing.T) {
+func (tester setNameTester) assertErrEmptyNameString() func(*testing.T) {
 	return func(t *testing.T) {
-		sampleUsage := Usage{name: "bar"}
-		got := sampleUsage.SetName(tester.iName)
+		defaultUsage = &Usage{name: "bar"}
+		got := SetName(tester.iName)
 		if got == nil {
 			t.Fatal("no error returned with empty name string")
 		}
 		assertError(t, got, tester.oErr)
+		defaultUsage = nil
+	}
+}
+
+func (tester setNameTester) assertPanic() func(*testing.T) {
+	return func(t *testing.T) {
+		defer func() {
+			r := recover()
+			if r == nil {
+				t.Fatal("no panic with uninitialized global usage")
+			}
+			assertPanic(t, r.(error), tester.oPanic)
+		}()
+		SetName(tester.iName)
+	}
+}
+
+type globalTester struct {
+	oUsage string
+	oPanic error
+}
+
+func (tester globalTester) assertString() func(*testing.T) {
+	return func(t *testing.T) {
+		summarySection, optionsSection, commandsSection := splitUsage(tester.oUsage)
+
+		var name string
+		var args ArgSlice
+		if summarySection != "" {
+			name, args = stringToNameAndArgs(summarySection)
+		}
+
+		var sampleOptions []Option
+		if optionsSection != "" {
+			sampleOptions = stringToMultipleOptions(optionsSection)
+		} else {
+			sampleOptions = make([]Option, 0)
+		}
+
+		var sampleEntries []Entry
+		if commandsSection != "" {
+			sampleEntries = stringToMultipleEntries(commandsSection)
+		}
+
+		defaultUsage = &Usage{
+			name:    name,
+			options: sampleOptions,
+			entries: make(map[string]Entry),
+			args:    args,
+		}
+		for _, e := range sampleEntries {
+			defaultUsage.entries[e.name] = e
+		}
+
+		if got := Global(); got != tester.oUsage {
+			t.Errorf("string is %q but should be %q", got, tester.oUsage)
+		}
+
+		defaultUsage = nil
+	}
+}
+
+func (tester globalTester) assertPanic() func(*testing.T) {
+	return func(t *testing.T) {
+		defer func() {
+			r := recover()
+			if r == nil {
+				t.Fatal("no panic with uninitialized global usage")
+			}
+			assertPanic(t, r.(error), tester.oPanic)
+		}()
+		Global()
+	}
+}
+
+type lookupTester struct {
+	oUsage string
+	oPanic error
+}
+
+func (tester lookupTester) assertString() func(*testing.T) {
+	return func(t *testing.T) {
+		summarySection, optionsSection, _ := splitUsage(tester.oUsage)
+		splitter := regexp.MustCompile(`[\n:]\n` + Indent)
+		summary := strings.TrimSpace(splitter.Split(summarySection, 3)[1])
+
+		nameString, _ := splitNameAndArgs(summary)
+		parentName := strings.Split(nameString, " ")[0]
+
+		var name string
+		var args ArgSlice
+		if summarySection != "" {
+			name, args = stringToNameAndArgs(summarySection)
+		}
+
+		var sampleOptions []Option
+		if optionsSection != "" {
+			sampleOptions = stringToMultipleOptions(optionsSection)
+		} else {
+			sampleOptions = make([]Option, 0)
+		}
+
+		sampleEntry := Entry{
+			name:    name,
+			options: sampleOptions,
+			args:    args,
+		}
+
+		defaultUsage = &Usage{
+			name:    parentName,
+			entries: map[string]Entry{sampleEntry.name: sampleEntry},
+			options: sampleOptions,
+			args:    args,
+		}
+
+		if got := Lookup(sampleEntry.name); got != tester.oUsage {
+			t.Errorf("string is %q but should be %q", got, tester.oUsage)
+		}
+
+		defaultUsage = nil
+	}
+}
+
+func (tester lookupTester) assertEmptyString() func(*testing.T) {
+	return func(t *testing.T) {
+		defaultUsage = &Usage{entries: make(map[string]Entry)}
+		if got := Lookup("foo"); got != tester.oUsage {
+			t.Errorf("string is %q but should be empty", got)
+		}
+		defaultUsage = nil
+	}
+}
+
+func (tester lookupTester) assertPanic() func(*testing.T) {
+	return func(t *testing.T) {
+		defer func() {
+			r := recover()
+			if r == nil {
+				t.Fatal("no panic with uninitialized global usage")
+			}
+			assertPanic(t, r.(error), tester.oPanic)
+		}()
+		Lookup("foo")
 	}
 }
 
@@ -346,27 +626,39 @@ func (tester newUsageTester) assertErrEmptyNameString() func(*testing.T) {
 
 /***** Test Cases *********************************************/
 
-func TestUsageArgs(t *testing.T) {
-	t.Run("baseline", usageArgsTester{
-		oArgs: []string{"foo"},
-	}.assertUsageArgs())
-	t.Run("multiple args", usageArgsTester{
-		oArgs: []string{"foo", "bar", "baz"},
-	}.assertUsageArgs())
-	t.Run("no args", usageArgsTester{
-		oArgs: make([]string, 0),
-	}.assertUsageArgs())
+func TestInit(t *testing.T) {
+	t.Run("baseline", initTester{
+		iName: "foo",
+	}.assertUsage())
+	t.Run("empty name string", initTester{
+		oErr: emptyNameStringErr(),
+	}.assertErrEmptyNameString())
 }
 
-func TestUsageOptions(t *testing.T) {
-	t.Run("baseline", usageOptionsTester{
+func TestArgs(t *testing.T) {
+	t.Run("baseline", argsTester{
+		oArgs: []string{"foo"},
+	}.assertUsageArgs())
+	t.Run("multiple args", argsTester{
+		oArgs: []string{"foo", "bar", "baz"},
+	}.assertUsageArgs())
+	t.Run("no args", argsTester{
+		oArgs: make([]string, 0),
+	}.assertUsageArgs())
+	t.Run("uninitialized", argsTester{
+		oPanic: uninitializedErr(),
+	}.assertPanic())
+}
+
+func TestOptions(t *testing.T) {
+	t.Run("baseline", optionsTester{
 		oOptions: []Option{{
 			aliases:     []string{"foo"},
 			Description: "foo",
 			args:        []string{"foo"},
 		}},
 	}.assertUsageOptions())
-	t.Run("multiple options", usageOptionsTester{
+	t.Run("multiple options", optionsTester{
 		oOptions: []Option{
 			{
 				aliases:     []string{"foo"},
@@ -385,13 +677,16 @@ func TestUsageOptions(t *testing.T) {
 			},
 		},
 	}.assertUsageOptions())
-	t.Run("no options", usageOptionsTester{
+	t.Run("no options", optionsTester{
 		oOptions: make([]Option, 0),
 	}.assertUsageOptions())
+	t.Run("uninitialized", optionsTester{
+		oPanic: uninitializedErr(),
+	}.assertPanic())
 }
 
-func TestUsageEntries(t *testing.T) {
-	t.Run("baseline", usageEntriesTester{
+func TestEntries(t *testing.T) {
+	t.Run("baseline", entriesTester{
 		oEntries: []Entry{{
 			name:        "foo",
 			Description: "foo",
@@ -403,7 +698,7 @@ func TestUsageEntries(t *testing.T) {
 			args: []string{"foo"},
 		}},
 	}.assertUsageEntries())
-	t.Run("multiple entries", usageEntriesTester{
+	t.Run("multiple entries", entriesTester{
 		oEntries: []Entry{
 			{
 				name:        "foo",
@@ -437,135 +732,48 @@ func TestUsageEntries(t *testing.T) {
 			},
 		},
 	}.assertUsageEntries())
-	t.Run("no entries", usageEntriesTester{
+	t.Run("no entries", entriesTester{
 		oEntries: make([]Entry, 0),
 	}.assertUsageEntries())
+	t.Run("uninitialized", entriesTester{
+		oPanic: uninitializedErr(),
+	}.assertPanic())
 }
 
-type usageUsageTester struct {
-	oUsage string
-}
-
-func (tester usageUsageTester) assertString() func(*testing.T) {
-	return func(t *testing.T) {
-		summarySection, optionsSection, commandsSection := splitUsage(tester.oUsage)
-
-		var name string
-		var args argSlice
-		if summarySection != "" {
-			name, args = stringToNameAndArgs(summarySection)
-		}
-
-		var sampleOptions []Option
-		if optionsSection != "" {
-			sampleOptions = stringToMultipleOptions(optionsSection)
-		} else {
-			sampleOptions = make([]Option, 0)
-		}
-
-		var sampleEntries []Entry
-		if commandsSection != "" {
-			sampleEntries = stringToMultipleEntries(commandsSection)
-		}
-
-		sampleUsage := Usage{
-			name:    name,
-			options: sampleOptions,
-			entries: make(map[string]Entry),
-			args:    args,
-		}
-		for _, e := range sampleEntries {
-			sampleUsage.entries[e.name] = e
-		}
-
-		if got := sampleUsage.Usage(); got != tester.oUsage {
-			t.Errorf("string is %q but should be %q", got, tester.oUsage)
-		}
-	}
-}
-
-type usageLookupTester struct {
-	oUsage string
-}
-
-func (tester usageLookupTester) assertString() func(*testing.T) {
-	return func(t *testing.T) {
-		summarySection, optionsSection, _ := splitUsage(tester.oUsage)
-		splitter := regexp.MustCompile(`[\n:]\n` + Indent)
-		summary := strings.TrimSpace(splitter.Split(summarySection, 3)[1])
-
-		nameString, _ := splitNameAndArgs(summary)
-		parentName := strings.Split(nameString, " ")[0]
-
-		var name string
-		var args argSlice
-		if summarySection != "" {
-			name, args = stringToNameAndArgs(summarySection)
-		}
-
-		var sampleOptions []Option
-		if optionsSection != "" {
-			sampleOptions = stringToMultipleOptions(optionsSection)
-		} else {
-			sampleOptions = make([]Option, 0)
-		}
-
-		sampleEntry := Entry{
-			name:    name,
-			options: sampleOptions,
-			args:    args,
-		}
-
-		sampleUsage := Usage{
-			name:    parentName,
-			entries: map[string]Entry{sampleEntry.name: sampleEntry},
-			options: sampleOptions,
-			args:    args,
-		}
-
-		if got := sampleUsage.Lookup(sampleEntry.name); got != tester.oUsage {
-			t.Errorf("string is %q but should be %q", got, tester.oUsage)
-		}
-	}
-}
-
-func (tester usageLookupTester) assertEmptyString() func(*testing.T) {
-	return func(t *testing.T) {
-		sampleUsage := Usage{entries: make(map[string]Entry)}
-		if got := sampleUsage.Lookup("foo"); got != tester.oUsage {
-			t.Errorf("string is %q but should be empty", got)
-		}
-	}
-}
-
-func TestUsageAddArg(t *testing.T) {
-	t.Run("baseline", usageAddArgTester{
+func TestAddArg(t *testing.T) {
+	t.Run("baseline", addArgTester{
 		iArg: "foo",
 	}.assertUsageArgs())
-	t.Run("empty arg string", usageAddArgTester{
+	t.Run("empty arg string", addArgTester{
 		oErr: emptyArgStringErr(),
 	}.assertErrEmptyArgString())
-	t.Run("existing entries", usageAddArgTester{
+	t.Run("existing entries", addArgTester{
 		iArg: "foo",
 		oErr: existingEntriesErr(),
 	}.assertErrExistingEntries())
+	t.Run("uninitialized", addArgTester{
+		oPanic: uninitializedErr(),
+	}.assertPanic())
 }
 
-func TestUsageAddOption(t *testing.T) {
-	t.Run("baseline", usageAddOptionTester{
+func TestAddOption(t *testing.T) {
+	t.Run("baseline", addOptionTester{
 		iOption: &Option{
 			aliases:     []string{"foo"},
 			Description: "foo",
 			args:        []string{"foo"},
 		},
 	}.assertUsageOptions())
-	t.Run("nil option", usageAddOptionTester{
+	t.Run("nil option", addOptionTester{
 		oErr: nilOptionProvidedErr(),
 	}.assertErrNoOptionProvided())
+	t.Run("uninitialized", addOptionTester{
+		oPanic: uninitializedErr(),
+	}.assertPanic())
 }
 
-func TestUsageAddEntry(t *testing.T) {
-	t.Run("baseline", usageAddEntryTester{
+func TestAddEntry(t *testing.T) {
+	t.Run("baseline", addEntryTester{
 		iEntry: &Entry{
 			name:        "foo",
 			Description: "foo",
@@ -577,7 +785,7 @@ func TestUsageAddEntry(t *testing.T) {
 			args: []string{"foo"},
 		},
 	}.assertUsageEntries())
-	t.Run("existing args", usageAddEntryTester{
+	t.Run("existing args", addEntryTester{
 		iEntry: &Entry{
 			name:        "foo",
 			Description: "foo",
@@ -590,31 +798,27 @@ func TestUsageAddEntry(t *testing.T) {
 		},
 		oErr: existingArgsErr(),
 	}.assertErrExistingArgs())
-	t.Run("nil entry", usageAddEntryTester{
+	t.Run("nil entry", addEntryTester{
 		oErr: nilEntryProvidedErr(),
 	}.assertErrNoEntryProvided())
+	t.Run("uninitialized", addEntryTester{
+		oPanic: uninitializedErr(),
+	}.assertPanic())
 }
 
-func TestNewUsage(t *testing.T) {
-	t.Run("baseline", newUsageTester{
-		iName:  "foo",
-		oUsage: &Usage{name: "foo"},
-	}.assertUsage())
-	t.Run("empty name string", newUsageTester{
-		oErr: emptyNameStringErr(),
-	}.assertErrEmptyNameString())
-}
-
-func TestUsageSetName(t *testing.T) {
-	t.Run("baseline", usageSetNameTester{
+func TestSetName(t *testing.T) {
+	t.Run("baseline", setNameTester{
 		iName: "foo",
 	}.assertUsageName())
-	t.Run("empty name string", usageSetNameTester{
+	t.Run("empty name string", setNameTester{
 		oErr: emptyNameStringErr(),
 	}.assertErrEmptyNameString())
+	t.Run("uninitialized", setNameTester{
+		oPanic: uninitializedErr(),
+	}.assertPanic())
 }
 
-func TestUsageUsage(t *testing.T) {
+func TestGlobal(t *testing.T) {
 	const dblIndent string = Indent + Indent
 	const longDescription string = "some very long description that will definitely push the limits\n" +
 		Indent + Indent + "of the screen size (it is very likely that this will cause the\n" +
@@ -846,16 +1050,16 @@ func TestUsageUsage(t *testing.T) {
 		)
 	)
 
-	t.Run("baseline", usageUsageTester{
+	t.Run("baseline", globalTester{
 		oUsage: fmt.Sprintf("Usage:\n%sbase\n", Indent),
 	}.assertString())
-	t.Run("single global arg", usageUsageTester{
+	t.Run("single global arg", globalTester{
 		oUsage: fmt.Sprintf("Usage:\n%ssingle-global-arg %s\n", Indent, singleArgString),
 	}.assertString())
-	t.Run("multiple global args", usageUsageTester{
+	t.Run("multiple global args", globalTester{
 		oUsage: fmt.Sprintf("Usage:\n%smultiple-global-args %s\n", Indent, multipleArgsString),
 	}.assertString())
-	t.Run("single option", usageUsageTester{
+	t.Run("single option", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-option %s\n\nOptions:\n%s\n",
 			Indent,
@@ -863,7 +1067,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+singleOptionString,
 		),
 	}.assertString())
-	t.Run("single option description", usageUsageTester{
+	t.Run("single option description", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-option-description %s\n\nOptions:\n%s\n",
 			Indent,
@@ -871,7 +1075,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+singleOptionDescriptionString,
 		),
 	}.assertString())
-	t.Run("single option long description", usageUsageTester{
+	t.Run("single option long description", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-option-long-description %s\n\nOptions:\n%s\n",
 			Indent,
@@ -879,7 +1083,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+singleOptionLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("single option single arg", usageUsageTester{
+	t.Run("single option single arg", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-option-single-arg %s\n\nOptions:\n%s\n",
 			Indent,
@@ -887,7 +1091,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+singleOptionSingleArgString,
 		),
 	}.assertString())
-	t.Run("single option single arg description", usageUsageTester{
+	t.Run("single option single arg description", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-option-single-arg-description %s\n\nOptions:\n%s\n",
 			Indent,
@@ -895,7 +1099,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+singleOptionSingleArgDescriptionString,
 		),
 	}.assertString())
-	t.Run("single option single arg long description", usageUsageTester{
+	t.Run("single option single arg long description", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-option-single-arg-long-description %s\n\nOptions:\n%s\n",
 			Indent,
@@ -903,7 +1107,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+singleOptionSingleArgLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("single option multiple args", usageUsageTester{
+	t.Run("single option multiple args", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-option-multiple-args %s\n\nOptions:\n%s\n",
 			Indent,
@@ -911,7 +1115,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+singleOptionMultipleArgsString,
 		),
 	}.assertString())
-	t.Run("single option multiple args description", usageUsageTester{
+	t.Run("single option multiple args description", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-option-multiple-args-description %s\n\nOptions:\n%s\n",
 			Indent,
@@ -919,7 +1123,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+singleOptionMultipleArgsDescriptionString,
 		),
 	}.assertString())
-	t.Run("single option multiple args long description", usageUsageTester{
+	t.Run("single option multiple args long description", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-option-multiple-args-long-description %s\n\nOptions:\n%s\n",
 			Indent,
@@ -927,7 +1131,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+singleOptionMultipleArgsLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("single option multiple aliases", usageUsageTester{
+	t.Run("single option multiple aliases", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-option-multiple-aliases %s\n\nOptions:\n%s\n",
 			Indent,
@@ -935,7 +1139,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+singleOptionMultipleAliasesString,
 		),
 	}.assertString())
-	t.Run("single option multiple aliases description", usageUsageTester{
+	t.Run("single option multiple aliases description", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-option-multiple-aliases-description %s\n\nOptions:\n%s\n",
 			Indent,
@@ -943,7 +1147,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+singleOptionMultipleAliasesDescriptionString,
 		),
 	}.assertString())
-	t.Run("single option multiple aliases long description", usageUsageTester{
+	t.Run("single option multiple aliases long description", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-option-multiple-aliases-long-description %s\n\nOptions:\n%s\n",
 			Indent,
@@ -951,7 +1155,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+singleOptionMultipleAliasesLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("single option multiple aliases single arg", usageUsageTester{
+	t.Run("single option multiple aliases single arg", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-option-multiple-aliases-single-arg %s\n\nOptions:\n%s\n",
 			Indent,
@@ -959,7 +1163,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+singleOptionMultipleAliasesSingleArgString,
 		),
 	}.assertString())
-	t.Run("single option multiple aliases single arg description", usageUsageTester{
+	t.Run("single option multiple aliases single arg description", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-option-multiple-aliases-single-arg-description %s\n\nOptions:\n%s\n",
 			Indent,
@@ -967,7 +1171,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+singleOptionMultipleAliasesSingleArgDescriptionString,
 		),
 	}.assertString())
-	t.Run("single option multiple aliases single arg long description", usageUsageTester{
+	t.Run("single option multiple aliases single arg long description", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-option-multiple-aliases-single-arg-long-description %s\n\nOptions:\n%s\n",
 			Indent,
@@ -975,7 +1179,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+singleOptionMultipleAliasesSingleArgLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("single option multiple aliases multiple args", usageUsageTester{
+	t.Run("single option multiple aliases multiple args", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-option-multiple-aliases-multiple-args %s\n\nOptions:\n%s\n",
 			Indent,
@@ -983,7 +1187,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+singleOptionMultipleAliasesMultipleArgsString,
 		),
 	}.assertString())
-	t.Run("single option multiple aliases multiple args description", usageUsageTester{
+	t.Run("single option multiple aliases multiple args description", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-option-multiple-aliases-multiple-args-description %s\n\nOptions:\n%s\n",
 			Indent,
@@ -991,7 +1195,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+singleOptionMultipleAliasesMultipleArgsDescriptionString,
 		),
 	}.assertString())
-	t.Run("single option multiple aliases multiple args long description", usageUsageTester{
+	t.Run("single option multiple aliases multiple args long description", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-option-multiple-aliases-multiple-args-long-description %s\n\nOptions:\n%s\n",
 			Indent,
@@ -999,7 +1203,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+singleOptionMultipleAliasesMultipleArgsLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple options", usageUsageTester{
+	t.Run("multiple options", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-options %s\n\nOptions:\n%s\n",
 			Indent,
@@ -1007,7 +1211,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+multipleOptionsString,
 		),
 	}.assertString())
-	t.Run("multiple options description", usageUsageTester{
+	t.Run("multiple options description", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-options-description %s\n\nOptions:\n%s\n",
 			Indent,
@@ -1015,7 +1219,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+multipleOptionsDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple options long description", usageUsageTester{
+	t.Run("multiple options long description", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-options-long-description %s\n\nOptions:\n%s\n",
 			Indent,
@@ -1023,7 +1227,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+multipleOptionsLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple options single arg", usageUsageTester{
+	t.Run("multiple options single arg", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-options-single-arg %s\n\nOptions:\n%s\n",
 			Indent,
@@ -1031,7 +1235,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+multipleOptionsSingleArgString,
 		),
 	}.assertString())
-	t.Run("multiple options single arg description", usageUsageTester{
+	t.Run("multiple options single arg description", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-options-single-arg-description %s\n\nOptions:\n%s\n",
 			Indent,
@@ -1039,7 +1243,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+multipleOptionsSingleArgDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple options single arg long description", usageUsageTester{
+	t.Run("multiple options single arg long description", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-options-single-arg-long-description %s\n\nOptions:\n%s\n",
 			Indent,
@@ -1047,7 +1251,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+multipleOptionsSingleArgLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple options multiple args", usageUsageTester{
+	t.Run("multiple options multiple args", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-options-multiple-args %s\n\nOptions:\n%s\n",
 			Indent,
@@ -1055,7 +1259,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+multipleOptionsMultipleArgsString,
 		),
 	}.assertString())
-	t.Run("multiple options multiple args description", usageUsageTester{
+	t.Run("multiple options multiple args description", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-options-multiple-args-description %s\n\nOptions:\n%s\n",
 			Indent,
@@ -1063,7 +1267,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+multipleOptionsMultipleArgsDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple options multiple args long description", usageUsageTester{
+	t.Run("multiple options multiple args long description", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-options-multiple-args-long-description %s\n\nOptions:\n%s\n",
 			Indent,
@@ -1071,7 +1275,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+multipleOptionsMultipleArgsLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple options multiple aliases", usageUsageTester{
+	t.Run("multiple options multiple aliases", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-options-multiple-aliases %s\n\nOptions:\n%s\n",
 			Indent,
@@ -1079,7 +1283,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+multipleOptionsMultipleAliasesString,
 		),
 	}.assertString())
-	t.Run("multiple options multiple aliases description", usageUsageTester{
+	t.Run("multiple options multiple aliases description", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-options-multiple-aliases-description %s\n\nOptions:\n%s\n",
 			Indent,
@@ -1087,7 +1291,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+multipleOptionsMultipleAliasesDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple options multiple aliases long description", usageUsageTester{
+	t.Run("multiple options multiple aliases long description", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-options-multiple-aliases-long-description %s\n\nOptions:\n%s\n",
 			Indent,
@@ -1095,7 +1299,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+multipleOptionsMultipleAliasesLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple options multiple aliases single arg", usageUsageTester{
+	t.Run("multiple options multiple aliases single arg", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-options-multiple-aliases-single-arg %s\n\nOptions:\n%s\n",
 			Indent,
@@ -1103,7 +1307,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+multipleOptionsMultipleAliasesSingleArgString,
 		),
 	}.assertString())
-	t.Run("multiple options multiple aliases single arg description", usageUsageTester{
+	t.Run("multiple options multiple aliases single arg description", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-options-multiple-aliases-single-arg-description %s\n\nOptions:\n%s\n",
 			Indent,
@@ -1111,7 +1315,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+multipleOptionsMultipleAliasesSingleArgDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple options multiple aliases single arg long description", usageUsageTester{
+	t.Run("multiple options multiple aliases single arg long description", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-options-multiple-aliases-single-arg-long-description %s\n\nOptions:\n%s\n",
 			Indent,
@@ -1119,7 +1323,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+multipleOptionsMultipleAliasesSingleArgLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple options multiple aliases multiple args", usageUsageTester{
+	t.Run("multiple options multiple aliases multiple args", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-options-multiple-aliases-multiple-args %s\n\nOptions:\n%s\n",
 			Indent,
@@ -1127,7 +1331,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+multipleOptionsMultipleAliasesMultipleArgsString,
 		),
 	}.assertString())
-	t.Run("multiple options multiple aliases multiple args description", usageUsageTester{
+	t.Run("multiple options multiple aliases multiple args description", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-options-multiple-aliases-multiple-args-description %s\n\nOptions:\n%s\n",
 			Indent,
@@ -1135,7 +1339,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+multipleOptionsMultipleAliasesMultipleArgsDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple options multiple aliases multiple args long description", usageUsageTester{
+	t.Run("multiple options multiple aliases multiple args long description", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-options-multiple-aliases-multiple-args-long-description %s\n\nOptions:\n%s\n",
 			Indent,
@@ -1143,7 +1347,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+multipleOptionsMultipleAliasesMultipleArgsLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("single command", usageUsageTester{
+	t.Run("single command", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-command %s\n\n%s\n\nCommands:\n%s\n",
 			Indent,
@@ -1152,7 +1356,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+singleCommandString,
 		),
 	}.assertString())
-	t.Run("single command description", usageUsageTester{
+	t.Run("single command description", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-command-description %s\n\n%s\n\nCommands:\n%s\n",
 			Indent,
@@ -1161,7 +1365,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+singleCommandDescriptionString,
 		),
 	}.assertString())
-	t.Run("single command long description", usageUsageTester{
+	t.Run("single command long description", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-command-long-description %s\n\n%s\n\nCommands:\n%s\n",
 			Indent,
@@ -1170,7 +1374,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+singleCommandLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("single command single arg", usageUsageTester{
+	t.Run("single command single arg", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-command-single-arg %s %s\n\n%s\n\nCommands:\n%s\n",
 			Indent,
@@ -1180,7 +1384,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+singleCommandSingleArgString,
 		),
 	}.assertString())
-	t.Run("single command single arg description", usageUsageTester{
+	t.Run("single command single arg description", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-command-single-arg-description %s %s\n\n%s\n\nCommands:\n%s\n",
 			Indent,
@@ -1190,7 +1394,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+singleCommandSingleArgDescriptionString,
 		),
 	}.assertString())
-	t.Run("single command single arg long description", usageUsageTester{
+	t.Run("single command single arg long description", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-command-single-arg-long-description %s %s\n\n%s\n\nCommands:\n%s\n",
 			Indent,
@@ -1200,7 +1404,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+singleCommandSingleArgLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("single command multiple args", usageUsageTester{
+	t.Run("single command multiple args", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-command-multiple-args %s %s\n\n%s\n\nCommands:\n%s\n",
 			Indent,
@@ -1210,7 +1414,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+singleCommandMultipleArgsString,
 		),
 	}.assertString())
-	t.Run("single command multiple args description", usageUsageTester{
+	t.Run("single command multiple args description", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-command-multiple-args-description %s %s\n\n%s\n\nCommands:\n%s\n",
 			Indent,
@@ -1220,7 +1424,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+singleCommandMultipleArgsDescriptionString,
 		),
 	}.assertString())
-	t.Run("single command multiple args long description", usageUsageTester{
+	t.Run("single command multiple args long description", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-command-multiple-args-long-description %s %s\n\n%s\n\nCommands:\n%s\n",
 			Indent,
@@ -1230,7 +1434,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+singleCommandMultipleArgsLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple commands", usageUsageTester{
+	t.Run("multiple commands", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-commands %s\n\n%s\n\nCommands:\n%s\n",
 			Indent,
@@ -1239,7 +1443,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+multipleCommandsString,
 		),
 	}.assertString())
-	t.Run("multiple commands description", usageUsageTester{
+	t.Run("multiple commands description", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-commands-description %s\n\n%s\n\nCommands:\n%s\n",
 			Indent,
@@ -1248,7 +1452,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+multipleCommandsDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple commands long description", usageUsageTester{
+	t.Run("multiple commands long description", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-commands-long-description %s\n\n%s\n\nCommands:\n%s\n",
 			Indent,
@@ -1257,7 +1461,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+multipleCommandsLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple commands single arg", usageUsageTester{
+	t.Run("multiple commands single arg", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-commands-single-arg %s %s\n\n%s\n\nCommands:\n%s\n",
 			Indent,
@@ -1267,7 +1471,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+multipleCommandsSingleArgString,
 		),
 	}.assertString())
-	t.Run("multiple commands single arg description", usageUsageTester{
+	t.Run("multiple commands single arg description", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-commands-single-arg-description %s %s\n\n%s\n\nCommands:\n%s\n",
 			Indent,
@@ -1277,7 +1481,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+multipleCommandsSingleArgDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple commands single arg long description", usageUsageTester{
+	t.Run("multiple commands single arg long description", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-commands-single-arg-long-description %s %s\n\n%s\n\nCommands:\n%s\n",
 			Indent,
@@ -1287,7 +1491,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+multipleCommandsSingleArgLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple commands multiple args", usageUsageTester{
+	t.Run("multiple commands multiple args", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-commands-multiple-args %s %s\n\n%s\n\nCommands:\n%s\n",
 			Indent,
@@ -1297,7 +1501,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+multipleCommandsMultipleArgsString,
 		),
 	}.assertString())
-	t.Run("multiple commands multiple args description", usageUsageTester{
+	t.Run("multiple commands multiple args description", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-commands-multiple-args-description %s %s\n\n%s\n\nCommands:\n%s\n",
 			Indent,
@@ -1307,7 +1511,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+multipleCommandsMultipleArgsDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple commands multiple args long description", usageUsageTester{
+	t.Run("multiple commands multiple args long description", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-commands-multiple-args-long-description %s %s\n\n%s\n\nCommands:\n%s\n",
 			Indent,
@@ -1317,7 +1521,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+multipleCommandsMultipleArgsLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("single option single global arg", usageUsageTester{
+	t.Run("single option single global arg", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-option-single-global-arg %s %s\n\nOptions:\n%s\n",
 			Indent,
@@ -1326,7 +1530,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+singleOptionLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("single option multiple global args", usageUsageTester{
+	t.Run("single option multiple global args", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-option-multiple-global-args %s %s\n\nOptions:\n%s\n",
 			Indent,
@@ -1335,7 +1539,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+singleOptionLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("single option single command", usageUsageTester{
+	t.Run("single option single command", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-option-single-command %s %s\n\n%s\n\nOptions:\n%s\n\nCommands:\n%s\n",
 			Indent,
@@ -1346,7 +1550,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+singleCommandLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("single option single command single command arg", usageUsageTester{
+	t.Run("single option single command single command arg", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-option-single-command-single-command-arg %s %s %s\n\n%s\n\nOptions:\n%s\n\nCommands:\n%s\n",
 			Indent,
@@ -1358,7 +1562,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+singleCommandSingleArgLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("single option single command multiple command args", usageUsageTester{
+	t.Run("single option single command multiple command args", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-option-single-command-multiple-command-args %s %s %s\n\n%s\n\nOptions:\n%s\n\nCommands:\n%s\n",
 			Indent,
@@ -1370,7 +1574,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+singleCommandMultipleArgsLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("single option multiple commands", usageUsageTester{
+	t.Run("single option multiple commands", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-option-multiple-commands %s %s\n\n%s\n\nOptions:\n%s\n\nCommands:\n%s\n",
 			Indent,
@@ -1381,7 +1585,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+multipleCommandsLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("single option multiple commands single command arg", usageUsageTester{
+	t.Run("single option multiple commands single command arg", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-option-multiple-commands-single-command-arg %s %s %s\n\n%s\n\nOptions:\n%s\n\nCommands:\n%s\n",
 			Indent,
@@ -1393,7 +1597,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+multipleCommandsSingleArgLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("single option multiple commands multiple command args", usageUsageTester{
+	t.Run("single option multiple commands multiple command args", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%ssingle-option-multiple-commands-multiple-command-args %s %s %s\n\n%s\n\nOptions:\n%s\n\nCommands:\n%s\n",
 			Indent,
@@ -1405,7 +1609,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+multipleCommandsMultipleArgsLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple options single global arg", usageUsageTester{
+	t.Run("multiple options single global arg", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-options-single-global-arg %s %s\n\nOptions:\n%s\n",
 			Indent,
@@ -1414,7 +1618,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+multipleOptionsLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple options multiple global args", usageUsageTester{
+	t.Run("multiple options multiple global args", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-options-multiple-global-args %s %s\n\nOptions:\n%s\n",
 			Indent,
@@ -1423,7 +1627,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+multipleOptionsLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple options single command", usageUsageTester{
+	t.Run("multiple options single command", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-options-single-command %s %s\n\n%s\n\nOptions:\n%s\n\nCommands:\n%s\n",
 			Indent,
@@ -1434,7 +1638,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+singleCommandLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple options single command single command arg", usageUsageTester{
+	t.Run("multiple options single command single command arg", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-options-single-command-single-command-arg %s %s %s\n\n%s\n\nOptions:\n%s\n\nCommands:\n%s\n",
 			Indent,
@@ -1446,7 +1650,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+singleCommandSingleArgLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple options single command multiple command args", usageUsageTester{
+	t.Run("multiple options single command multiple command args", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-options-single-command-multiple-command-args %s %s %s\n\n%s\n\nOptions:\n%s\n\nCommands:\n%s\n",
 			Indent,
@@ -1458,7 +1662,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+singleCommandMultipleArgsLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple options multiple commands", usageUsageTester{
+	t.Run("multiple options multiple commands", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-options-multiple-commands %s %s\n\n%s\n\nOptions:\n%s\n\nCommands:\n%s\n",
 			Indent,
@@ -1469,7 +1673,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+multipleCommandsLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple options multiple commands single command arg", usageUsageTester{
+	t.Run("multiple options multiple commands single command arg", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-options-multiple-commands-single-command-arg %s %s %s\n\n%s\n\nOptions:\n%s\n\nCommands:\n%s\n",
 			Indent,
@@ -1481,7 +1685,7 @@ func TestUsageUsage(t *testing.T) {
 			Indent+multipleCommandsSingleArgLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple options multiple commands multiple command args", usageUsageTester{
+	t.Run("multiple options multiple commands multiple command args", globalTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%smultiple-options-multiple-commands-multiple-command-args %s %s %s\n\n%s\n\nOptions:\n%s\n\nCommands:\n%s\n",
 			Indent,
@@ -1493,9 +1697,12 @@ func TestUsageUsage(t *testing.T) {
 			Indent+multipleCommandsMultipleArgsLongDescriptionString,
 		),
 	}.assertString())
+	t.Run("uninitialized", globalTester{
+		oPanic: uninitializedErr(),
+	}.assertPanic())
 }
 
-func TestUsageLookup(t *testing.T) {
+func TestLookup(t *testing.T) {
 	const dblIndent string = Indent + Indent
 	const longDescription string = "some very long description that will definitely push the limits\n" +
 		Indent + Indent + "of the screen size (it is very likely that this will cause the\n" +
@@ -1652,16 +1859,16 @@ func TestUsageLookup(t *testing.T) {
 		)
 	)
 
-	t.Run("baseline", usageLookupTester{
+	t.Run("baseline", lookupTester{
 		oUsage: fmt.Sprintf("Usage:\n%scalling-parent base\n", Indent),
 	}.assertString())
-	t.Run("single arg", usageLookupTester{
+	t.Run("single arg", lookupTester{
 		oUsage: fmt.Sprintf("Usage:\n%scalling-parent single-arg %s\n", Indent, singleArgString),
 	}.assertString())
-	t.Run("multiple args", usageLookupTester{
+	t.Run("multiple args", lookupTester{
 		oUsage: fmt.Sprintf("Usage:\n%scalling-parent multiple-args %s\n", Indent, multipleArgsString),
 	}.assertString())
-	t.Run("single option", usageLookupTester{
+	t.Run("single option", lookupTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%scalling-parent single-option %s\n\nOptions:\n%s\n",
 			Indent,
@@ -1669,7 +1876,7 @@ func TestUsageLookup(t *testing.T) {
 			Indent+singleOptionString,
 		),
 	}.assertString())
-	t.Run("single option description", usageLookupTester{
+	t.Run("single option description", lookupTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%scalling-parent single-option-description %s\n\nOptions:\n%s\n",
 			Indent,
@@ -1677,7 +1884,7 @@ func TestUsageLookup(t *testing.T) {
 			Indent+singleOptionDescriptionString,
 		),
 	}.assertString())
-	t.Run("single option long description", usageLookupTester{
+	t.Run("single option long description", lookupTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%scalling-parent single-option-long-description %s\n\nOptions:\n%s\n",
 			Indent,
@@ -1685,7 +1892,7 @@ func TestUsageLookup(t *testing.T) {
 			Indent+singleOptionLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("single option single arg", usageLookupTester{
+	t.Run("single option single arg", lookupTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%scalling-parent single-option-single-arg %s\n\nOptions:\n%s\n",
 			Indent,
@@ -1693,7 +1900,7 @@ func TestUsageLookup(t *testing.T) {
 			Indent+singleOptionSingleArgString,
 		),
 	}.assertString())
-	t.Run("single option single arg description", usageLookupTester{
+	t.Run("single option single arg description", lookupTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%scalling-parent single-option-single-arg-description %s\n\nOptions:\n%s\n",
 			Indent,
@@ -1701,7 +1908,7 @@ func TestUsageLookup(t *testing.T) {
 			Indent+singleOptionSingleArgDescriptionString,
 		),
 	}.assertString())
-	t.Run("single option single arg long description", usageLookupTester{
+	t.Run("single option single arg long description", lookupTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%scalling-parent single-option-single-arg-long-description %s\n\nOptions:\n%s\n",
 			Indent,
@@ -1709,7 +1916,7 @@ func TestUsageLookup(t *testing.T) {
 			Indent+singleOptionSingleArgLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("single option multiple args", usageLookupTester{
+	t.Run("single option multiple args", lookupTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%scalling-parent single-option-multiple-args %s\n\nOptions:\n%s\n",
 			Indent,
@@ -1717,7 +1924,7 @@ func TestUsageLookup(t *testing.T) {
 			Indent+singleOptionMultipleArgsString,
 		),
 	}.assertString())
-	t.Run("single option multiple args description", usageLookupTester{
+	t.Run("single option multiple args description", lookupTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%scalling-parent single-option-multiple-args-description %s\n\nOptions:\n%s\n",
 			Indent,
@@ -1725,7 +1932,7 @@ func TestUsageLookup(t *testing.T) {
 			Indent+singleOptionMultipleArgsDescriptionString,
 		),
 	}.assertString())
-	t.Run("single option multiple args long description", usageLookupTester{
+	t.Run("single option multiple args long description", lookupTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%scalling-parent single-option-multiple-args-long-description %s\n\nOptions:\n%s\n",
 			Indent,
@@ -1733,7 +1940,7 @@ func TestUsageLookup(t *testing.T) {
 			Indent+singleOptionMultipleArgsLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("single option multiple aliases", usageLookupTester{
+	t.Run("single option multiple aliases", lookupTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%scalling-parent single-option-multiple-aliases %s\n\nOptions:\n%s\n",
 			Indent,
@@ -1741,7 +1948,7 @@ func TestUsageLookup(t *testing.T) {
 			Indent+singleOptionMultipleAliasesString,
 		),
 	}.assertString())
-	t.Run("single option multiple aliases description", usageLookupTester{
+	t.Run("single option multiple aliases description", lookupTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%scalling-parent single-option-multiple-aliases-description %s\n\nOptions:\n%s\n",
 			Indent,
@@ -1749,7 +1956,7 @@ func TestUsageLookup(t *testing.T) {
 			Indent+singleOptionMultipleAliasesDescriptionString,
 		),
 	}.assertString())
-	t.Run("single option multiple aliases long description", usageLookupTester{
+	t.Run("single option multiple aliases long description", lookupTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%scalling-parent single-option-multiple-aliases-long-description %s\n\nOptions:\n%s\n",
 			Indent,
@@ -1757,7 +1964,7 @@ func TestUsageLookup(t *testing.T) {
 			Indent+singleOptionMultipleAliasesLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("single option multiple aliases single arg", usageLookupTester{
+	t.Run("single option multiple aliases single arg", lookupTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%scalling-parent single-option-multiple-aliases-single-arg %s\n\nOptions:\n%s\n",
 			Indent,
@@ -1765,7 +1972,7 @@ func TestUsageLookup(t *testing.T) {
 			Indent+singleOptionMultipleAliasesSingleArgString,
 		),
 	}.assertString())
-	t.Run("single option multiple aliases single arg description", usageLookupTester{
+	t.Run("single option multiple aliases single arg description", lookupTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%scalling-parent single-option-multiple-aliases-single-arg-description %s\n\nOptions:\n%s\n",
 			Indent,
@@ -1773,7 +1980,7 @@ func TestUsageLookup(t *testing.T) {
 			Indent+singleOptionMultipleAliasesSingleArgDescriptionString,
 		),
 	}.assertString())
-	t.Run("single option multiple aliases single arg long description", usageLookupTester{
+	t.Run("single option multiple aliases single arg long description", lookupTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%scalling-parent single-option-multiple-aliases-single-arg-long-description %s\n\nOptions:\n%s\n",
 			Indent,
@@ -1781,7 +1988,7 @@ func TestUsageLookup(t *testing.T) {
 			Indent+singleOptionMultipleAliasesSingleArgLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("single option multiple aliases multiple args", usageLookupTester{
+	t.Run("single option multiple aliases multiple args", lookupTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%scalling-parent single-option-multiple-aliases-multiple-args %s\n\nOptions:\n%s\n",
 			Indent,
@@ -1789,7 +1996,7 @@ func TestUsageLookup(t *testing.T) {
 			Indent+singleOptionMultipleAliasesMultipleArgsString,
 		),
 	}.assertString())
-	t.Run("single option multiple aliases multiple args description", usageLookupTester{
+	t.Run("single option multiple aliases multiple args description", lookupTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%scalling-parent single-option-multiple-aliases-multiple-args-description %s\n\nOptions:\n%s\n",
 			Indent,
@@ -1797,7 +2004,7 @@ func TestUsageLookup(t *testing.T) {
 			Indent+singleOptionMultipleAliasesMultipleArgsDescriptionString,
 		),
 	}.assertString())
-	t.Run("single option multiple aliases multiple args long description", usageLookupTester{
+	t.Run("single option multiple aliases multiple args long description", lookupTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%scalling-parent single-option-multiple-aliases-multiple-args-long-description %s\n\nOptions:\n%s\n",
 			Indent,
@@ -1805,7 +2012,7 @@ func TestUsageLookup(t *testing.T) {
 			Indent+singleOptionMultipleAliasesMultipleArgsLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple options", usageLookupTester{
+	t.Run("multiple options", lookupTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%scalling-parent multiple-options %s\n\nOptions:\n%s\n",
 			Indent,
@@ -1813,7 +2020,7 @@ func TestUsageLookup(t *testing.T) {
 			Indent+multipleOptionsString,
 		),
 	}.assertString())
-	t.Run("multiple options description", usageLookupTester{
+	t.Run("multiple options description", lookupTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%scalling-parent multiple-options-description %s\n\nOptions:\n%s\n",
 			Indent,
@@ -1821,7 +2028,7 @@ func TestUsageLookup(t *testing.T) {
 			Indent+multipleOptionsDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple options long description", usageLookupTester{
+	t.Run("multiple options long description", lookupTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%scalling-parent multiple-options-long-description %s\n\nOptions:\n%s\n",
 			Indent,
@@ -1829,7 +2036,7 @@ func TestUsageLookup(t *testing.T) {
 			Indent+multipleOptionsLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple options single arg", usageLookupTester{
+	t.Run("multiple options single arg", lookupTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%scalling-parent multiple-options-single-arg %s\n\nOptions:\n%s\n",
 			Indent,
@@ -1837,7 +2044,7 @@ func TestUsageLookup(t *testing.T) {
 			Indent+multipleOptionsSingleArgString,
 		),
 	}.assertString())
-	t.Run("multiple options single arg description", usageLookupTester{
+	t.Run("multiple options single arg description", lookupTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%scalling-parent multiple-options-single-arg-description %s\n\nOptions:\n%s\n",
 			Indent,
@@ -1845,7 +2052,7 @@ func TestUsageLookup(t *testing.T) {
 			Indent+multipleOptionsSingleArgDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple options single arg long description", usageLookupTester{
+	t.Run("multiple options single arg long description", lookupTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%scalling-parent multiple-options-single-arg-long-description %s\n\nOptions:\n%s\n",
 			Indent,
@@ -1853,7 +2060,7 @@ func TestUsageLookup(t *testing.T) {
 			Indent+multipleOptionsSingleArgLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple options multiple args", usageLookupTester{
+	t.Run("multiple options multiple args", lookupTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%scalling-parent multiple-options-multiple-args %s\n\nOptions:\n%s\n",
 			Indent,
@@ -1861,7 +2068,7 @@ func TestUsageLookup(t *testing.T) {
 			Indent+multipleOptionsMultipleArgsString,
 		),
 	}.assertString())
-	t.Run("multiple options multiple args description", usageLookupTester{
+	t.Run("multiple options multiple args description", lookupTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%scalling-parent multiple-options-multiple-args-description %s\n\nOptions:\n%s\n",
 			Indent,
@@ -1869,7 +2076,7 @@ func TestUsageLookup(t *testing.T) {
 			Indent+multipleOptionsMultipleArgsDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple options multiple args long description", usageLookupTester{
+	t.Run("multiple options multiple args long description", lookupTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%scalling-parent multiple-options-multiple-args-long-description %s\n\nOptions:\n%s\n",
 			Indent,
@@ -1877,7 +2084,7 @@ func TestUsageLookup(t *testing.T) {
 			Indent+multipleOptionsMultipleArgsLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple options multiple aliases", usageLookupTester{
+	t.Run("multiple options multiple aliases", lookupTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%scalling-parent multiple-options-multiple-aliases %s\n\nOptions:\n%s\n",
 			Indent,
@@ -1885,7 +2092,7 @@ func TestUsageLookup(t *testing.T) {
 			Indent+multipleOptionsMultipleAliasesString,
 		),
 	}.assertString())
-	t.Run("multiple options multiple aliases description", usageLookupTester{
+	t.Run("multiple options multiple aliases description", lookupTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%scalling-parent multiple-options-multiple-aliases-description %s\n\nOptions:\n%s\n",
 			Indent,
@@ -1893,7 +2100,7 @@ func TestUsageLookup(t *testing.T) {
 			Indent+multipleOptionsMultipleAliasesDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple options multiple aliases long description", usageLookupTester{
+	t.Run("multiple options multiple aliases long description", lookupTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%scalling-parent multiple-options-multiple-aliases-long-description %s\n\nOptions:\n%s\n",
 			Indent,
@@ -1901,7 +2108,7 @@ func TestUsageLookup(t *testing.T) {
 			Indent+multipleOptionsMultipleAliasesLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple options multiple aliases single arg", usageLookupTester{
+	t.Run("multiple options multiple aliases single arg", lookupTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%scalling-parent multiple-options-multiple-aliases-single-arg %s\n\nOptions:\n%s\n",
 			Indent,
@@ -1909,7 +2116,7 @@ func TestUsageLookup(t *testing.T) {
 			Indent+multipleOptionsMultipleAliasesSingleArgString,
 		),
 	}.assertString())
-	t.Run("multiple options multiple aliases single arg description", usageLookupTester{
+	t.Run("multiple options multiple aliases single arg description", lookupTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%scalling-parent multiple-options-multiple-aliases-single-arg-description %s\n\nOptions:\n%s\n",
 			Indent,
@@ -1917,7 +2124,7 @@ func TestUsageLookup(t *testing.T) {
 			Indent+multipleOptionsMultipleAliasesSingleArgDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple options multiple aliases single arg long description", usageLookupTester{
+	t.Run("multiple options multiple aliases single arg long description", lookupTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%scalling-parent multiple-options-multiple-aliases-single-arg-long-description %s\n\nOptions:\n%s\n",
 			Indent,
@@ -1925,7 +2132,7 @@ func TestUsageLookup(t *testing.T) {
 			Indent+multipleOptionsMultipleAliasesSingleArgLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple options multiple aliases multiple args", usageLookupTester{
+	t.Run("multiple options multiple aliases multiple args", lookupTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%scalling-parent multiple-options-multiple-aliases-multiple-args %s\n\nOptions:\n%s\n",
 			Indent,
@@ -1933,7 +2140,7 @@ func TestUsageLookup(t *testing.T) {
 			Indent+multipleOptionsMultipleAliasesMultipleArgsString,
 		),
 	}.assertString())
-	t.Run("multiple options multiple aliases multiple args description", usageLookupTester{
+	t.Run("multiple options multiple aliases multiple args description", lookupTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%scalling-parent multiple-options-multiple-aliases-multiple-args-description %s\n\nOptions:\n%s\n",
 			Indent,
@@ -1941,7 +2148,7 @@ func TestUsageLookup(t *testing.T) {
 			Indent+multipleOptionsMultipleAliasesMultipleArgsDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple options multiple aliases multiple args long description", usageLookupTester{
+	t.Run("multiple options multiple aliases multiple args long description", lookupTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%scalling-parent multiple-options-multiple-aliases-multiple-args-long-description %s\n\nOptions:\n%s\n",
 			Indent,
@@ -1949,7 +2156,7 @@ func TestUsageLookup(t *testing.T) {
 			Indent+multipleOptionsMultipleAliasesMultipleArgsLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("single option single global arg", usageLookupTester{
+	t.Run("single option single global arg", lookupTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%scalling-parent single-option-single-global-arg %s %s\n\nOptions:\n%s\n",
 			Indent,
@@ -1958,7 +2165,7 @@ func TestUsageLookup(t *testing.T) {
 			Indent+singleOptionSingleArgLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("single option multiple global args", usageLookupTester{
+	t.Run("single option multiple global args", lookupTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%scalling-parent single-option-multiple-global-args %s %s\n\nOptions:\n%s\n",
 			Indent,
@@ -1967,7 +2174,7 @@ func TestUsageLookup(t *testing.T) {
 			Indent+singleOptionMultipleArgsLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple options single global arg", usageLookupTester{
+	t.Run("multiple options single global arg", lookupTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%scalling-parent multiple-options-single-global-arg %s %s\n\nOptions:\n%s\n",
 			Indent,
@@ -1976,7 +2183,7 @@ func TestUsageLookup(t *testing.T) {
 			Indent+multipleOptionsSingleArgLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("multiple options multiple global args", usageLookupTester{
+	t.Run("multiple options multiple global args", lookupTester{
 		oUsage: fmt.Sprintf(
 			"Usage:\n%scalling-parent multiple-options-multiple-global-args %s %s\n\nOptions:\n%s\n",
 			Indent,
@@ -1985,5 +2192,18 @@ func TestUsageLookup(t *testing.T) {
 			Indent+multipleOptionsMultipleArgsLongDescriptionString,
 		),
 	}.assertString())
-	t.Run("entry does not exist", usageLookupTester{}.assertEmptyString())
+	t.Run("entry does not exist", lookupTester{}.assertEmptyString())
+	t.Run("uninitialized", lookupTester{
+		oPanic: uninitializedErr(),
+	}.assertPanic())
+}
+
+func TestNewUsage(t *testing.T) {
+	t.Run("baseline", newUsageTester{
+		iName:  "foo",
+		oUsage: &Usage{name: "foo"},
+	}.assertUsage())
+	t.Run("empty name string", newUsageTester{
+		oErr: emptyNameStringErr(),
+	}.assertErrEmptyNameString())
 }

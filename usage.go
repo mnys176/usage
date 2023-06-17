@@ -13,10 +13,10 @@ type Usage struct {
 	name    string
 	entries map[string]Entry
 	options []Option
-	args    argSlice
+	args    ArgSlice
 }
 
-func (u Usage) Args() []string {
+func (u Usage) Args() ArgSlice {
 	return u.args
 }
 
@@ -65,7 +65,7 @@ func (u *Usage) AddEntry(e *Entry) error {
 	return nil
 }
 
-func (u Usage) Usage() string {
+func (u Usage) Global() string {
 	hasEntries, hasOptions, hasArgs := len(u.entries) > 0, len(u.options) > 0, len(u.args) > 0
 
 	var usage strings.Builder
@@ -142,6 +142,77 @@ func NewUsage(name string) (*Usage, error) {
 		options: make([]Option, 0),
 		args:    make([]string, 0),
 	}, nil
+}
+
+var defaultUsage *Usage
+
+func Init(name string) error {
+	u, err := NewUsage(name)
+	defaultUsage = u
+	return err
+}
+
+func Args() ArgSlice {
+	if defaultUsage == nil {
+		panic(uninitializedErr())
+	}
+	return defaultUsage.Args()
+}
+
+func Options() []Option {
+	if defaultUsage == nil {
+		panic(uninitializedErr())
+	}
+	return defaultUsage.Options()
+}
+
+func Entries() []Entry {
+	if defaultUsage == nil {
+		panic(uninitializedErr())
+	}
+	return defaultUsage.Entries()
+}
+
+func AddArg(arg string) error {
+	if defaultUsage == nil {
+		panic(uninitializedErr())
+	}
+	return defaultUsage.AddArg(arg)
+}
+
+func AddOption(o *Option) error {
+	if defaultUsage == nil {
+		panic(uninitializedErr())
+	}
+	return defaultUsage.AddOption(o)
+}
+
+func AddEntry(e *Entry) error {
+	if defaultUsage == nil {
+		panic(uninitializedErr())
+	}
+	return defaultUsage.AddEntry(e)
+}
+
+func SetName(name string) error {
+	if defaultUsage == nil {
+		panic(uninitializedErr())
+	}
+	return defaultUsage.SetName(name)
+}
+
+func Global() string {
+	if defaultUsage == nil {
+		panic(uninitializedErr())
+	}
+	return defaultUsage.Global()
+}
+
+func Lookup(entry string) string {
+	if defaultUsage == nil {
+		panic(uninitializedErr())
+	}
+	return defaultUsage.Lookup(entry)
 }
 
 func chopSingleParagraph(p string, length int) []string {

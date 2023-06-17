@@ -8,11 +8,11 @@ import (
 type Entry struct {
 	Description string
 	name        string
-	args        argSlice
+	args        ArgSlice
 	options     []Option
 }
 
-func (e Entry) Args() []string {
+func (e Entry) Args() ArgSlice {
 	return e.args
 }
 

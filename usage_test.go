@@ -50,7 +50,7 @@ func splitUsage(usage string) (string, string, string) {
 	return summarySection, optionsSection, commandsSection
 }
 
-func stringToNameAndArgs(summarySection string) (string, argSlice) {
+func stringToNameAndArgs(summarySection string) (string, ArgSlice) {
 	splitter := regexp.MustCompile(`[\n:]\n` + Indent)
 	summary := strings.TrimSpace(splitter.Split(summarySection, 3)[1])
 	nameString, argString := splitNameAndArgs(summary)
@@ -63,12 +63,12 @@ func stringToNameAndArgs(summarySection string) (string, argSlice) {
 	}
 
 	if strings.HasPrefix(argString, "<command>") {
-		return name, newArgSlice("")
+		return name, NewArgSlice("")
 	}
 	if argsStart := strings.IndexRune(argString, '<'); argsStart > -1 {
-		return name, newArgSlice(argString[argsStart:])
+		return name, NewArgSlice(argString[argsStart:])
 	}
-	return name, newArgSlice("")
+	return name, NewArgSlice("")
 }
 
 func assertError(t *testing.T, got, want error) {
@@ -465,7 +465,7 @@ func (tester globalTester) assertString() func(*testing.T) {
 		summarySection, optionsSection, commandsSection := splitUsage(tester.oUsage)
 
 		var name string
-		var args argSlice
+		var args ArgSlice
 		if summarySection != "" {
 			name, args = stringToNameAndArgs(summarySection)
 		}
@@ -528,7 +528,7 @@ func (tester lookupTester) assertString() func(*testing.T) {
 		parentName := strings.Split(nameString, " ")[0]
 
 		var name string
-		var args argSlice
+		var args ArgSlice
 		if summarySection != "" {
 			name, args = stringToNameAndArgs(summarySection)
 		}

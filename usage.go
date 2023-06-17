@@ -13,10 +13,10 @@ type Usage struct {
 	name    string
 	entries map[string]Entry
 	options []Option
-	args    argSlice
+	args    ArgSlice
 }
 
-func (u Usage) Args() []string {
+func (u Usage) Args() ArgSlice {
 	return u.args
 }
 
@@ -152,7 +152,7 @@ func Init(name string) error {
 	return err
 }
 
-func Args() []string {
+func Args() ArgSlice {
 	if defaultUsage == nil {
 		panic(uninitializedErr())
 	}

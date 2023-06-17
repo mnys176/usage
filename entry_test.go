@@ -23,7 +23,7 @@ func stringToEntry(str string) *Entry {
 		}
 	}
 
-	argSlc := newArgSlice(args)
+	argSlc := NewArgSlice(args)
 
 	return &Entry{
 		name:        subcommand,
@@ -230,7 +230,7 @@ func (tester entryUsageTester) assertString() func(*testing.T) {
 		summarySection, optionsSection, _ := splitUsage(tester.oUsage)
 
 		var name string
-		var args argSlice
+		var args ArgSlice
 		if summarySection != "" {
 			name, args = stringToNameAndArgs(summarySection)
 		}

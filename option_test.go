@@ -14,7 +14,7 @@ func stringToOption(str string) *Option {
 	aliasesAndArgs = strings.TrimPrefix(aliasesAndArgs, Indent)
 
 	aliases := make([]string, 0)
-	argSlc := make(argSlice, 0)
+	argSlc := make(ArgSlice, 0)
 	for _, token := range strings.Split(aliasesAndArgs, " ") {
 		if strings.HasPrefix(token, "-") {
 			aliases = append(aliases, strings.Trim(token, "-,"))

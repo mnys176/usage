@@ -5,10 +5,10 @@ import "strings"
 type Option struct {
 	Description string
 	aliases     []string
-	args        argSlice
+	args        ArgSlice
 }
 
-func (o Option) Args() []string {
+func (o Option) Args() ArgSlice {
 	return o.args
 }
 

@@ -2,9 +2,9 @@ package usage
 
 import "strings"
 
-type argSlice []string
+type ArgSlice []string
 
-func (args argSlice) String() string {
+func (args ArgSlice) String() string {
 	if len(args) == 0 {
 		return ""
 	}
@@ -15,9 +15,9 @@ func (args argSlice) String() string {
 	return argsBuilder.String()[1:]
 }
 
-func newArgSlice(argString string) argSlice {
+func NewArgSlice(argString string) ArgSlice {
 	if argString == "" {
-		return make(argSlice, 0)
+		return make(ArgSlice, 0)
 	}
-	return argSlice(strings.Split(argString[1:len(argString)-1], "> <"))
+	return ArgSlice(strings.Split(argString[1:len(argString)-1], "> <"))
 }

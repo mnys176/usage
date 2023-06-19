@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"regexp"
 )
 
 type UsageError struct {
@@ -20,15 +19,4 @@ func (e UsageError) Is(target error) bool {
 
 func (e UsageError) Unwrap() error {
 	return e.Err
-}
-
-type ValidationError struct {
-	UsageError
-	Str     string
-	Pattern *regexp.Regexp
-}
-
-type ConfigurationError struct {
-	UsageError
-	EntryName string
 }

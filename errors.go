@@ -1,6 +1,9 @@
 package main
 
-import "regexp"
+import (
+	"fmt"
+	"regexp"
+)
 
 type UsageError struct {
 	Context string
@@ -8,17 +11,15 @@ type UsageError struct {
 }
 
 func (e UsageError) Error() string {
-	// fmt.Errorf("%s: %w", e.Context, e.Err).Error()
-	return ""
+	return fmt.Errorf("%s: %w", e.Context, e.Err).Error()
 }
 
 func (e UsageError) Is(target error) bool {
-	// e.Error() == target.Error()
-	return false
+	return e.Error() == target.Error()
 }
 
 func (e UsageError) Unwrap() error {
-	return nil
+	return e.Err
 }
 
 type ValidationError struct {

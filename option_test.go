@@ -37,11 +37,23 @@ type optionArgsTester struct {
 	oArgs []string
 }
 
-func (tester optionArgsTester) assertOptionArgs() func(*testing.T) {
+func (tester optionArgsTester) assertArgs() func(*testing.T) {
 	return func(t *testing.T) {
 		sampleOption := Option{args: tester.oArgs}
 		got := sampleOption.Args()
 		assertArgs(t, got, tester.oArgs)
+	}
+}
+
+type optionAliasesTester struct {
+	oAliases []string
+}
+
+func (tester optionAliasesTester) assertAliases() func(*testing.T) {
+	return func(t *testing.T) {
+		sampleOption := Option{aliases: tester.oAliases}
+		got := sampleOption.Aliases()
+		assertAliases(t, got, tester.oAliases)
 	}
 }
 
@@ -50,7 +62,7 @@ type optionAddArgTester struct {
 	oErr error
 }
 
-func (tester optionAddArgTester) assertOptionArgs() func(*testing.T) {
+func (tester optionAddArgTester) assertArgs() func(*testing.T) {
 	return func(t *testing.T) {
 		iterations := 3
 		args := make([]string, 0, iterations)
@@ -71,6 +83,43 @@ func (tester optionAddArgTester) assertEmptyArgStringErr() func(*testing.T) {
 		got := sampleOption.AddArg(tester.iArg)
 		if got == nil {
 			t.Fatal("no error returned with an empty arg string")
+		}
+		assertError(t, got, tester.oErr)
+	}
+}
+
+type optionSetAliasesTester struct {
+	iAliases []string
+	oErr     error
+}
+
+func (tester optionSetAliasesTester) assertAliases() func(*testing.T) {
+	return func(t *testing.T) {
+		sampleOption := Option{aliases: tester.iAliases}
+		if gotErr := sampleOption.SetAliases(tester.iAliases); gotErr != nil {
+			t.Errorf("got %q error but should be nil", gotErr)
+		}
+		assertAliases(t, sampleOption.aliases, tester.iAliases)
+	}
+}
+
+func (tester optionSetAliasesTester) assertNoAliasesErr() func(*testing.T) {
+	return func(t *testing.T) {
+		sampleOption := Option{aliases: []string{"foo"}}
+		got := sampleOption.SetAliases(tester.iAliases)
+		if got == nil {
+			t.Fatal("no error returned with no provided aliases")
+		}
+		assertError(t, got, tester.oErr)
+	}
+}
+
+func (tester optionSetAliasesTester) assertEmptyAliasStringErr() func(*testing.T) {
+	return func(t *testing.T) {
+		sampleOption := Option{aliases: []string{"foo"}}
+		got := sampleOption.SetAliases(tester.iAliases)
+		if got == nil {
+			t.Fatal("no error returned with an empty alias string")
 		}
 		assertError(t, got, tester.oErr)
 	}
@@ -99,7 +148,7 @@ func (tester newOptionTester) assertOption() func(*testing.T) {
 	}
 }
 
-func (tester newOptionTester) assertNoAliasErr() func(*testing.T) {
+func (tester newOptionTester) assertNoAliasesErr() func(*testing.T) {
 	return func(t *testing.T) {
 		gotOption, got := NewOption(tester.iAliases, tester.iDescription)
 		if gotOption != nil {
@@ -128,22 +177,58 @@ func (tester newOptionTester) assertEmptyAliasStringErr() func(*testing.T) {
 func TestOptionArgs(t *testing.T) {
 	t.Run("baseline", optionArgsTester{
 		oArgs: []string{"foo"},
-	}.assertOptionArgs())
+	}.assertArgs())
 	t.Run("multiple args", optionArgsTester{
 		oArgs: []string{"foo", "bar", "baz"},
-	}.assertOptionArgs())
+	}.assertArgs())
 	t.Run("no args", optionArgsTester{
 		oArgs: make([]string, 0),
-	}.assertOptionArgs())
+	}.assertArgs())
+}
+
+func TestOptionAliases(t *testing.T) {
+	t.Run("baseline", optionAliasesTester{
+		oAliases: []string{"foo"},
+	}.assertAliases())
+	t.Run("multiple aliases", optionAliasesTester{
+		oAliases: []string{"foo", "bar", "baz"},
+	}.assertAliases())
+	t.Run("no aliases", optionAliasesTester{
+		oAliases: make([]string, 0),
+	}.assertAliases())
 }
 
 func TestOptionAddArg(t *testing.T) {
 	t.Run("baseline", optionAddArgTester{
 		iArg: "foo",
-	}.assertOptionArgs())
+	}.assertArgs())
 	t.Run("empty arg string", optionAddArgTester{
 		oErr: errors.New("usage: arg string must not be empty"),
 	}.assertEmptyArgStringErr())
+}
+
+func TestOptionSetAliases(t *testing.T) {
+	t.Run("baseline", optionSetAliasesTester{
+		iAliases: []string{"foo"},
+	}.assertAliases())
+	t.Run("multiple aliases", optionSetAliasesTester{
+		iAliases: []string{"foo", "bar"},
+	}.assertAliases())
+	t.Run("nil aliases", optionSetAliasesTester{
+		oErr: errors.New("usage: option must have at least one alias"),
+	}.assertNoAliasesErr())
+	t.Run("no aliases", optionSetAliasesTester{
+		iAliases: make([]string, 0),
+		oErr:     errors.New("usage: option must have at least one alias"),
+	}.assertNoAliasesErr())
+	t.Run("single empty alias string", optionSetAliasesTester{
+		iAliases: []string{""},
+		oErr:     errors.New("usage: alias string must not be empty"),
+	}.assertEmptyAliasStringErr())
+	t.Run("multiple empty alias strings", optionSetAliasesTester{
+		iAliases: []string{"foo", "", "bar", ""},
+		oErr:     errors.New("usage: alias string must not be empty"),
+	}.assertEmptyAliasStringErr())
 }
 
 func TestNewOption(t *testing.T) {
@@ -170,12 +255,12 @@ func TestNewOption(t *testing.T) {
 	t.Run("nil aliases", newOptionTester{
 		iDescription: "foo",
 		oErr:         errors.New("usage: option must have at least one alias"),
-	}.assertNoAliasErr())
+	}.assertNoAliasesErr())
 	t.Run("no aliases", newOptionTester{
 		iAliases:     make([]string, 0),
 		iDescription: "foo",
 		oErr:         errors.New("usage: option must have at least one alias"),
-	}.assertNoAliasErr())
+	}.assertNoAliasesErr())
 	t.Run("single empty alias string", newOptionTester{
 		iAliases:     []string{""},
 		iDescription: "foo",

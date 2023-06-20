@@ -17,21 +17,27 @@ func (o Option) Args() []string {
 }
 
 func (o Option) Aliases() []string {
-	return nil
+	return o.aliases
 }
 
 func (o *Option) AddArg(arg string) error {
 	if arg == "" {
-		return &UsageError{
-			Context: "usage",
-			Err:     errors.New("arg string must not be empty"),
-		}
+		return &UsageError{errors.New("arg string must not be empty")}
 	}
 	o.args = append(o.args, arg)
 	return nil
 }
 
 func (o *Option) SetAliases(aliases []string) error {
+	if len(aliases) == 0 {
+		return &UsageError{errors.New("option must have at least one alias")}
+	}
+	for _, alias := range aliases {
+		if len(alias) == 0 {
+			return &UsageError{errors.New("alias string must not be empty")}
+		}
+	}
+	o.aliases = aliases
 	return nil
 }
 
@@ -41,17 +47,11 @@ func (o Option) Usage() (string, error) {
 
 func NewOption(aliases []string, desc string) (*Option, error) {
 	if len(aliases) == 0 {
-		return nil, &UsageError{
-			Context: "usage",
-			Err:     errors.New("option must have at least one alias"),
-		}
+		return nil, &UsageError{errors.New("option must have at least one alias")}
 	}
 	for _, alias := range aliases {
 		if len(alias) == 0 {
-			return nil, &UsageError{
-				Context: "usage",
-				Err:     errors.New("alias string must not be empty"),
-			}
+			return nil, &UsageError{errors.New("alias string must not be empty")}
 		}
 	}
 

@@ -5,12 +5,11 @@ import (
 )
 
 type UsageError struct {
-	Context string
-	Err     error
+	err error
 }
 
 func (e UsageError) Error() string {
-	return fmt.Errorf("%s: %w", e.Context, e.Err).Error()
+	return fmt.Errorf("usage: %w", e.err).Error()
 }
 
 func (e UsageError) Is(target error) bool {
@@ -18,5 +17,5 @@ func (e UsageError) Is(target error) bool {
 }
 
 func (e UsageError) Unwrap() error {
-	return e.Err
+	return e.err
 }

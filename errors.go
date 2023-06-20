@@ -1,22 +1,13 @@
 package main
 
-import (
-	"fmt"
-)
-
 type UsageError struct {
-	Context string
-	Err     error
+	Msg string
 }
 
 func (e UsageError) Error() string {
-	return fmt.Errorf("%s: %w", e.Context, e.Err).Error()
+	return "usage: " + e.Msg
 }
 
 func (e UsageError) Is(target error) bool {
 	return e.Error() == target.Error()
-}
-
-func (e UsageError) Unwrap() error {
-	return e.Err
 }

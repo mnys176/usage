@@ -1,10 +1,8 @@
 package main
 
-import "text/template"
-
 type Entry struct {
 	Description string
-	Tmpl        *template.Template
+	Tmpl        string
 	name        string
 	args        []string
 	options     []Option

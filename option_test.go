@@ -27,6 +27,16 @@ func assertAliases(t *testing.T, got, want []string) {
 	}
 }
 
+func assertOption(t *testing.T, got, want *Option) {
+	assertAliases(t, got.aliases, want.aliases)
+	if got.Description != want.Description {
+		t.Errorf("description is %q but should be %q", got.Description, want.Description)
+	}
+	if got.args == nil || len(got.args) != 0 {
+		t.Error("args not initialized to an empty slice")
+	}
+}
+
 func assertError(t *testing.T, got, want error) {
 	if !errors.Is(got, want) {
 		t.Errorf("got %q error but wanted %q", got, want)
@@ -138,13 +148,7 @@ func (tester newOptionTester) assertOption() func(*testing.T) {
 		if gotErr != nil {
 			t.Errorf("got %q error but should be nil", gotErr)
 		}
-		assertAliases(t, got.aliases, tester.oOption.aliases)
-		if got.Description != tester.oOption.Description {
-			t.Errorf("description is %q but should be %q", got.Description, tester.oOption.Description)
-		}
-		if got.args == nil || len(got.args) != 0 {
-			t.Error("args not initialized to an empty slice")
-		}
+		assertOption(t, got, tester.oOption)
 	}
 }
 

@@ -222,7 +222,7 @@ type newEntryTester struct {
 	oErr         error
 }
 
-func (tester newEntryTester) assertEntry() func(*testing.T) {
+func (tester newEntryTester) assertDefaultEntry() func(*testing.T) {
 	return func(t *testing.T) {
 		got, gotErr := NewEntry(tester.iName, tester.iDescription)
 		assertNilError(t, gotErr)
@@ -421,11 +421,11 @@ func TestNewEntry(t *testing.T) {
 		iName:        "foo",
 		iDescription: "foo",
 		oEntry:       &Entry{name: "foo", Description: "foo"},
-	}.assertEntry())
+	}.assertDefaultEntry())
 	t.Run("empty description string", newEntryTester{
 		iName:  "foo",
 		oEntry: &Entry{name: "foo"},
-	}.assertEntry())
+	}.assertDefaultEntry())
 	t.Run("empty name string", newEntryTester{
 		iDescription: "foo",
 		oErr:         errors.New("usage: name string must not be empty"),

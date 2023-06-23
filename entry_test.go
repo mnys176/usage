@@ -17,6 +17,18 @@ func (tester entryArgsTester) assertArgs() func(*testing.T) {
 	}
 }
 
+type entryOptionsTester struct {
+	oOptions []Option
+}
+
+func (tester entryOptionsTester) assertEntryOptions() func(*testing.T) {
+	return func(t *testing.T) {
+		sampleEntry := Entry{options: tester.oOptions}
+		got := sampleEntry.Options()
+		assertOptions(t, got, tester.oOptions)
+	}
+}
+
 type entryNameTester struct {
 	oName string
 }
@@ -88,6 +100,42 @@ func TestEntryArgs(t *testing.T) {
 	t.Run("no args", entryArgsTester{
 		oArgs: make([]string, 0),
 	}.assertArgs())
+}
+
+func TestEntryOptions(t *testing.T) {
+	t.Run("baseline", entryOptionsTester{
+		oOptions: []Option{{
+			Description: "foo",
+			Tmpl:        "foo",
+			aliases:     []string{"foo"},
+			args:        []string{"foo"},
+		}},
+	}.assertEntryOptions())
+	t.Run("multiple options", entryOptionsTester{
+		oOptions: []Option{
+			{
+				Description: "foo",
+				Tmpl:        "foo",
+				aliases:     []string{"foo"},
+				args:        []string{"foo"},
+			},
+			{
+				Description: "bar",
+				Tmpl:        "bar",
+				aliases:     []string{"bar"},
+				args:        []string{"bar"},
+			},
+			{
+				Description: "baz",
+				Tmpl:        "baz",
+				aliases:     []string{"baz"},
+				args:        []string{"baz"},
+			},
+		},
+	}.assertEntryOptions())
+	t.Run("no options", entryOptionsTester{
+		oOptions: make([]Option, 0),
+	}.assertEntryOptions())
 }
 
 func TestEntryName(t *testing.T) {

@@ -59,6 +59,12 @@ func assertDescription(t *testing.T, got, want string) {
 	}
 }
 
+func assertTemplate(t *testing.T, got, want string) {
+	if got != want {
+		t.Errorf("template is %q but should be %q", got, want)
+	}
+}
+
 func assertUsage(t *testing.T, got, want string) {
 	if got != want {
 		t.Errorf("usage is %q but should be %q", got, want)
@@ -88,6 +94,13 @@ func assertArgs(t *testing.T, got, want []string) {
 }
 
 func assertOption(t *testing.T, got, want *Option) {
+	assertDescription(t, got.Description, want.Description)
+	assertTemplate(t, got.Tmpl, want.Tmpl)
+	assertAliases(t, got.aliases, want.aliases)
+	assertArgs(t, got.args, want.args)
+}
+
+func assertDefaultOption(t *testing.T, got, want *Option) {
 	assertAliases(t, got.aliases, want.aliases)
 	assertDescription(t, got.Description, want.Description)
 	if got.args == nil || len(got.args) != 0 {
@@ -96,12 +109,20 @@ func assertOption(t *testing.T, got, want *Option) {
 	if got.Tmpl == "" {
 		t.Error("template not initialized to a template string")
 	}
-	got.Usage()
 }
 
 func assertNilOption(t *testing.T, got *Option) {
 	if got != nil {
 		t.Errorf("got %+v option but should be nil", got)
+	}
+}
+
+func assertOptions(t *testing.T, got, want []Option) {
+	if len(got) != len(want) {
+		t.Fatalf("%d options returned but wanted %d", len(got), len(want))
+	}
+	for i, gotOption := range got {
+		assertOption(t, &gotOption, &want[i])
 	}
 }
 

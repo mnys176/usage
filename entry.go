@@ -17,7 +17,7 @@ func (e Entry) Args() []string {
 }
 
 func (e Entry) Options() []Option {
-	return nil
+	return e.options
 }
 
 func (e Entry) Entries() []Entry {

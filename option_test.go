@@ -108,11 +108,11 @@ type newOptionTester struct {
 	oErr         error
 }
 
-func (tester newOptionTester) assertOption() func(*testing.T) {
+func (tester newOptionTester) assertDefaultOption() func(*testing.T) {
 	return func(t *testing.T) {
 		got, gotErr := NewOption(tester.iAliases, tester.iDescription)
 		assertNilError(t, gotErr)
-		assertOption(t, got, tester.oOption)
+		assertDefaultOption(t, got, tester.oOption)
 	}
 }
 
@@ -317,7 +317,7 @@ func TestNewOption(t *testing.T) {
 			aliases:     []string{"foo"},
 			Description: "foo",
 		},
-	}.assertOption())
+	}.assertDefaultOption())
 	t.Run("multiple aliases", newOptionTester{
 		iAliases:     []string{"foo", "bar"},
 		iDescription: "foo",
@@ -325,11 +325,11 @@ func TestNewOption(t *testing.T) {
 			aliases:     []string{"foo", "bar"},
 			Description: "foo",
 		},
-	}.assertOption())
+	}.assertDefaultOption())
 	t.Run("empty description string", newOptionTester{
 		iAliases: []string{"foo"},
 		oOption:  &Option{aliases: []string{"foo"}},
-	}.assertOption())
+	}.assertDefaultOption())
 	t.Run("nil aliases", newOptionTester{
 		iDescription: "foo",
 		oErr:         errors.New("usage: option must have at least one alias"),

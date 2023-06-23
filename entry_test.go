@@ -2,6 +2,7 @@ package usage
 
 import (
 	"errors"
+	"fmt"
 	"sort"
 	"testing"
 )
@@ -87,6 +88,19 @@ func (tester entryAddArgTester) assertEmptyArgStringError() func(*testing.T) {
 	}
 }
 
+func (tester entryAddArgTester) assertExistingEntriesError() func(*testing.T) {
+	return func(t *testing.T) {
+		sampleEntry := &Entry{
+			children: map[string]*Entry{
+				"foo": {name: "foo"},
+			},
+			args: make([]string, 0),
+		}
+		got := sampleEntry.AddArg(tester.iArg)
+		assertExistingEntriesError(t, got, tester.oErr)
+	}
+}
+
 type entryAddOptionTester struct {
 	iOption *Option
 	oErr    error
@@ -110,7 +124,72 @@ func (tester entryAddOptionTester) assertNoOptionError() func(*testing.T) {
 	return func(t *testing.T) {
 		sampleEntry := &Entry{options: make([]Option, 0)}
 		got := sampleEntry.AddOption(tester.iOption)
-		assertError(t, got, tester.oErr)
+		assertNoOptionError(t, got, tester.oErr)
+	}
+}
+
+func (tester entryAddOptionTester) assertNoAliasesError() func(*testing.T) {
+	return func(t *testing.T) {
+		sampleEntry := &Entry{options: make([]Option, 0)}
+		got := sampleEntry.AddOption(tester.iOption)
+		assertNoAliasesError(t, got, tester.oErr)
+	}
+}
+
+func (tester entryAddOptionTester) assertEmptyAliasStringError() func(*testing.T) {
+	return func(t *testing.T) {
+		sampleEntry := &Entry{options: make([]Option, 0)}
+		got := sampleEntry.AddOption(tester.iOption)
+		assertEmptyAliasStringError(t, got, tester.oErr)
+	}
+}
+
+type entryAddEntryTester struct {
+	iEntry *Entry
+	oErr   error
+}
+
+func (tester entryAddEntryTester) assertChildren() func(*testing.T) {
+	return func(t *testing.T) {
+		iterations := 3
+		entries := make(map[string]*Entry)
+		sampleEntry := &Entry{children: make(map[string]*Entry)}
+		for i := 1; i <= iterations; i++ {
+			child := *tester.iEntry
+			child.name += fmt.Sprintf("-%d", i)
+			gotErr := sampleEntry.AddEntry(&child)
+			assertNilError(t, gotErr)
+			assertParent(t, child.parent, sampleEntry)
+			entries[child.name] = &child
+		}
+		assertChildren(t, sampleEntry.children, entries)
+	}
+}
+
+func (tester entryAddEntryTester) assertNoEntryError() func(*testing.T) {
+	return func(t *testing.T) {
+		sampleEntry := &Entry{children: make(map[string]*Entry)}
+		got := sampleEntry.AddEntry(tester.iEntry)
+		assertNoEntryError(t, got, tester.oErr)
+	}
+}
+
+func (tester entryAddEntryTester) assertEmptyNameStringError() func(*testing.T) {
+	return func(t *testing.T) {
+		sampleEntry := &Entry{children: make(map[string]*Entry)}
+		got := sampleEntry.AddEntry(tester.iEntry)
+		assertEmptyNameStringError(t, got, tester.oErr)
+	}
+}
+
+func (tester entryAddEntryTester) assertExistingArgsError() func(*testing.T) {
+	return func(t *testing.T) {
+		sampleEntry := &Entry{
+			children: make(map[string]*Entry),
+			args:     []string{"foo"},
+		}
+		got := sampleEntry.AddEntry(tester.iEntry)
+		assertExistingArgsError(t, got, tester.oErr)
 	}
 }
 
@@ -276,6 +355,9 @@ func TestEntryAddArg(t *testing.T) {
 	t.Run("empty arg string", entryAddArgTester{
 		oErr: errors.New("usage: arg string must not be empty"),
 	}.assertEmptyArgStringError())
+	t.Run("existing entries", entryAddArgTester{
+		oErr: errors.New("usage: cannot add arg with child entries present"),
+	}.assertExistingEntriesError())
 }
 
 func TestEntryAddOption(t *testing.T) {
@@ -290,6 +372,39 @@ func TestEntryAddOption(t *testing.T) {
 	t.Run("nil option", entryAddOptionTester{
 		oErr: errors.New("usage: no option provided"),
 	}.assertNoOptionError())
+	t.Run("nil aliases", entryAddOptionTester{
+		iOption: &Option{args: []string{"foo"}},
+		oErr:    errors.New("usage: option must have at least one alias"),
+	}.assertNoAliasesError())
+	t.Run("no aliases", entryAddOptionTester{
+		iOption: &Option{aliases: []string{}},
+		oErr:    errors.New("usage: option must have at least one alias"),
+	}.assertNoAliasesError())
+	t.Run("single empty alias string", entryAddOptionTester{
+		iOption: &Option{aliases: []string{""}},
+		oErr:    errors.New("usage: alias string must not be empty"),
+	}.assertEmptyAliasStringError())
+	t.Run("multiple empty alias strings", entryAddOptionTester{
+		iOption: &Option{aliases: []string{"foo", "", "bar", ""}},
+		oErr:    errors.New("usage: alias string must not be empty"),
+	}.assertEmptyAliasStringError())
+}
+
+func TestAddEntry(t *testing.T) {
+	t.Run("baseline", entryAddEntryTester{
+		iEntry: &Entry{name: "foo"},
+	}.assertChildren())
+	t.Run("nil entry", entryAddEntryTester{
+		oErr: errors.New("usage: no entry provided"),
+	}.assertNoEntryError())
+	t.Run("empty name string", entryAddEntryTester{
+		iEntry: &Entry{},
+		oErr:   errors.New("usage: name string must not be empty"),
+	}.assertEmptyNameStringError())
+	t.Run("existing args", entryAddEntryTester{
+		iEntry: &Entry{name: "foo"},
+		oErr:   errors.New("usage: cannot add child entry with args present"),
+	}.assertExistingArgsError())
 }
 
 func TestEntrySetName(t *testing.T) {

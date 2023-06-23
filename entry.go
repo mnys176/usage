@@ -39,6 +39,9 @@ func (e Entry) Name() string {
 }
 
 func (e *Entry) AddArg(arg string) error {
+	if len(e.children) > 0 {
+		return &UsageError{errors.New("cannot add arg with child entries present")}
+	}
 	if arg == "" {
 		return &UsageError{errors.New("arg string must not be empty")}
 	}
@@ -46,15 +49,34 @@ func (e *Entry) AddArg(arg string) error {
 	return nil
 }
 
-func (e *Entry) AddOption(o *Option) error {
-	if o == nil {
+func (e *Entry) AddOption(option *Option) error {
+	if option == nil {
 		return &UsageError{errors.New("no option provided")}
 	}
-	e.options = append(e.options, *o)
+	if len(option.aliases) == 0 {
+		return &UsageError{errors.New("option must have at least one alias")}
+	}
+	for _, alias := range option.aliases {
+		if len(alias) == 0 {
+			return &UsageError{errors.New("alias string must not be empty")}
+		}
+	}
+	e.options = append(e.options, *option)
 	return nil
 }
 
 func (e *Entry) AddEntry(entry *Entry) error {
+	if entry == nil {
+		return &UsageError{errors.New("no entry provided")}
+	}
+	if entry.name == "" {
+		return &UsageError{errors.New("name string must not be empty")}
+	}
+	if len(e.args) > 0 {
+		return &UsageError{errors.New("cannot add child entry with args present")}
+	}
+	entry.parent = e
+	e.children[entry.name] = entry
 	return nil
 }
 

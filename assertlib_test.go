@@ -47,6 +47,34 @@ func assertEmptyNameStringError(t *testing.T, got, want error) {
 	assertError(t, got, want)
 }
 
+func assertNoOptionError(t *testing.T, got, want error) {
+	if got == nil {
+		t.Fatal("no error returned with no option provided")
+	}
+	assertError(t, got, want)
+}
+
+func assertNoEntryError(t *testing.T, got, want error) {
+	if got == nil {
+		t.Fatal("no error returned with no entry provided")
+	}
+	assertError(t, got, want)
+}
+
+func assertExistingArgsError(t *testing.T, got, want error) {
+	if got == nil {
+		t.Fatal("no error returned when an entry is added with existing args")
+	}
+	assertError(t, got, want)
+}
+
+func assertExistingEntriesError(t *testing.T, got, want error) {
+	if got == nil {
+		t.Fatal("no error returned when an arg is added with existing entries")
+	}
+	assertError(t, got, want)
+}
+
 func assertName(t *testing.T, got, want string) {
 	if got != want {
 		t.Errorf("name is %q but should be %q", got, want)

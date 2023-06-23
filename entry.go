@@ -11,7 +11,7 @@ type Entry struct {
 }
 
 func (e Entry) Args() []string {
-	return nil
+	return e.args
 }
 
 func (e Entry) Options() []Option {

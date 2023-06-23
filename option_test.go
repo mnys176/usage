@@ -7,17 +7,6 @@ import (
 	"testing"
 )
 
-func assertArgs(t *testing.T, got, want []string) {
-	if len(got) != len(want) {
-		t.Fatalf("%d args returned but wanted %d", len(got), len(want))
-	}
-	for i, gotArg := range got {
-		if gotArg != want[i] {
-			t.Errorf("arg is %q but should be %q", gotArg, want[i])
-		}
-	}
-}
-
 func assertAliases(t *testing.T, got, want []string) {
 	if len(got) != len(want) {
 		t.Fatalf("%d aliases returned but wanted %d", len(got), len(want))

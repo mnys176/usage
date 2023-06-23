@@ -1,5 +1,7 @@
 package main
 
+import "errors"
+
 type Entry struct {
 	Description string
 	Tmpl        string
@@ -27,6 +29,10 @@ func (e Entry) Name() string {
 }
 
 func (e *Entry) AddArg(arg string) error {
+	if arg == "" {
+		return &UsageError{errors.New("arg string must not be empty")}
+	}
+	e.args = append(e.args, arg)
 	return nil
 }
 

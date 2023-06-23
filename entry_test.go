@@ -1,6 +1,9 @@
 package main
 
-import "testing"
+import (
+	"errors"
+	"testing"
+)
 
 func assertArgs(t *testing.T, got, want []string) {
 	if len(got) != len(want) {
@@ -38,6 +41,37 @@ func (tester entryNameTester) assertName() func(*testing.T) {
 	}
 }
 
+type entryAddArgTester struct {
+	iArg string
+	oErr error
+}
+
+func (tester entryAddArgTester) assertArgs() func(*testing.T) {
+	return func(t *testing.T) {
+		iterations := 3
+		args := make([]string, 0, iterations)
+		sampleEntry := Entry{args: make([]string, 0)}
+		for i := 1; i <= iterations; i++ {
+			if gotErr := sampleEntry.AddArg(tester.iArg); gotErr != nil {
+				t.Errorf("got %q error but should be nil", gotErr)
+			}
+			args = append(args, tester.iArg)
+		}
+		assertArgs(t, sampleEntry.args, args)
+	}
+}
+
+func (tester entryAddArgTester) assertEmptyArgStringErr() func(*testing.T) {
+	return func(t *testing.T) {
+		sampleEntry := Entry{args: make([]string, 0)}
+		got := sampleEntry.AddArg(tester.iArg)
+		if got == nil {
+			t.Fatal("no error returned with an empty arg string")
+		}
+		assertError(t, got, tester.oErr)
+	}
+}
+
 func TestEntryArgs(t *testing.T) {
 	t.Run("baseline", entryArgsTester{
 		oArgs: []string{"foo"},
@@ -54,4 +88,13 @@ func TestEntryName(t *testing.T) {
 	t.Run("baseline", entryNameTester{
 		oName: "foo",
 	}.assertName())
+}
+
+func TestEntryAddArg(t *testing.T) {
+	t.Run("baseline", entryAddArgTester{
+		iArg: "foo",
+	}.assertArgs())
+	t.Run("empty arg string", entryAddArgTester{
+		oErr: errors.New("usage: arg string must not be empty"),
+	}.assertEmptyArgStringErr())
 }

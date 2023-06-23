@@ -109,6 +109,29 @@ func (tester entrySetNameTester) assertEmptyNameStringError() func(*testing.T) {
 	}
 }
 
+type newEntryTester struct {
+	iName        string
+	iDescription string
+	oEntry       *Entry
+	oErr         error
+}
+
+func (tester newEntryTester) assertEntry() func(*testing.T) {
+	return func(t *testing.T) {
+		got, gotErr := NewEntry(tester.iName, tester.iDescription)
+		assertNilError(t, gotErr)
+		assertDefaultEntry(t, got, tester.oEntry)
+	}
+}
+
+func (tester newEntryTester) assertEmptyNameStringError() func(*testing.T) {
+	return func(t *testing.T) {
+		gotEntry, got := NewEntry(tester.iName, tester.iDescription)
+		assertNilEntry(t, gotEntry)
+		assertError(t, got, tester.oErr)
+	}
+}
+
 func TestEntryArgs(t *testing.T) {
 	t.Run("baseline", entryArgsTester{
 		oArgs: []string{"foo"},
@@ -234,5 +257,21 @@ func TestEntrySetName(t *testing.T) {
 	}.assertName())
 	t.Run("empty name string", entrySetNameTester{
 		oErr: errors.New("usage: name string must not be empty"),
+	}.assertEmptyNameStringError())
+}
+
+func TestNewEntry(t *testing.T) {
+	t.Run("baseline", newEntryTester{
+		iName:        "foo",
+		iDescription: "foo",
+		oEntry:       &Entry{name: "foo", Description: "foo"},
+	}.assertEntry())
+	t.Run("empty description string", newEntryTester{
+		iName:  "foo",
+		oEntry: &Entry{name: "foo"},
+	}.assertEntry())
+	t.Run("empty name string", newEntryTester{
+		iDescription: "foo",
+		oErr:         errors.New("usage: name string must not be empty"),
 	}.assertEmptyNameStringError())
 }

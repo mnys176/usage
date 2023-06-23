@@ -69,3 +69,20 @@ func (e Entry) Usage() (string, error) {
 func (e Entry) Lookup(lookupPath string) (string, error) {
 	return "", nil
 }
+
+func NewEntry(name, desc string) (*Entry, error) {
+	if name == "" {
+		return nil, &UsageError{errors.New("name string must not be empty")}
+	}
+
+	tmpl := `foo`
+
+	return &Entry{
+		Description: desc,
+		Tmpl:        tmpl,
+		name:        name,
+		args:        make([]string, 0),
+		options:     make([]Option, 0),
+		children:    make(map[string]*Entry),
+	}, nil
+}

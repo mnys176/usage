@@ -71,6 +71,23 @@ func assertUsage(t *testing.T, got, want string) {
 	}
 }
 
+func assertChildren(t *testing.T, got, want map[string]*Entry) {
+	if len(got) != len(want) {
+		t.Fatalf("%d children returned but wanted %d", len(got), len(want))
+	}
+	for gotName, gotChild := range got {
+		if gotChild != want[gotName] {
+			t.Errorf("child %q is %+v but should be %+v", gotName, gotChild, want[gotName])
+		}
+	}
+}
+
+func assertParent(t *testing.T, got, want *Entry) {
+	if got != want {
+		t.Errorf("parent is %+v but should be %+v", got, want)
+	}
+}
+
 func assertAliases(t *testing.T, got, want []string) {
 	if len(got) != len(want) {
 		t.Fatalf("%d aliases returned but wanted %d", len(got), len(want))
@@ -132,6 +149,34 @@ func assertEntry(t *testing.T, got, want *Entry) {
 	assertTemplate(t, got.Tmpl, want.Tmpl)
 	assertArgs(t, got.args, want.args)
 	assertOptions(t, got.options, want.options)
+	assertChildren(t, got.children, want.children)
+	assertParent(t, got.parent, want.parent)
+}
+
+func assertDefaultEntry(t *testing.T, got, want *Entry) {
+	assertName(t, got.name, want.name)
+	assertDescription(t, got.Description, want.Description)
+	if got.args == nil || len(got.args) != 0 {
+		t.Error("args not initialized to an empty slice")
+	}
+	if got.Tmpl == "" {
+		t.Error("template not initialized to a template string")
+	}
+	if got.options == nil || len(got.options) != 0 {
+		t.Error("options not initialized to an empty slice")
+	}
+	if got.children == nil || len(got.children) != 0 {
+		t.Error("children not initialized to an empty map")
+	}
+	if got.parent != nil {
+		t.Error("parent not initialized to nil")
+	}
+}
+
+func assertNilEntry(t *testing.T, got *Entry) {
+	if got != nil {
+		t.Errorf("got %+v entry but should be nil", got)
+	}
 }
 
 func assertEntries(t *testing.T, got, want []Entry) {

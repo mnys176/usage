@@ -87,6 +87,33 @@ func (tester entryAddArgTester) assertEmptyArgStringError() func(*testing.T) {
 	}
 }
 
+type entryAddOptionTester struct {
+	iOption *Option
+	oErr    error
+}
+
+func (tester entryAddOptionTester) assertOptions() func(*testing.T) {
+	return func(t *testing.T) {
+		iterations := 3
+		options := make([]Option, 0, iterations)
+		sampleEntry := &Entry{options: make([]Option, 0)}
+		for i := 1; i <= iterations; i++ {
+			gotErr := sampleEntry.AddOption(tester.iOption)
+			assertNilError(t, gotErr)
+			options = append(options, *tester.iOption)
+		}
+		assertOptions(t, sampleEntry.options, options)
+	}
+}
+
+func (tester entryAddOptionTester) assertNoOptionError() func(*testing.T) {
+	return func(t *testing.T) {
+		sampleEntry := &Entry{options: make([]Option, 0)}
+		got := sampleEntry.AddOption(tester.iOption)
+		assertError(t, got, tester.oErr)
+	}
+}
+
 type entrySetNameTester struct {
 	iName string
 	oErr  error
@@ -249,6 +276,20 @@ func TestEntryAddArg(t *testing.T) {
 	t.Run("empty arg string", entryAddArgTester{
 		oErr: errors.New("usage: arg string must not be empty"),
 	}.assertEmptyArgStringError())
+}
+
+func TestEntryAddOption(t *testing.T) {
+	t.Run("baseline", entryAddOptionTester{
+		iOption: &Option{
+			Description: "foo",
+			Tmpl:        "foo",
+			aliases:     []string{"foo"},
+			args:        []string{"foo"},
+		},
+	}.assertOptions())
+	t.Run("nil option", entryAddOptionTester{
+		oErr: errors.New("usage: no option provided"),
+	}.assertNoOptionError())
 }
 
 func TestEntrySetName(t *testing.T) {

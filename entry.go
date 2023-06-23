@@ -46,7 +46,11 @@ func (e *Entry) AddArg(arg string) error {
 	return nil
 }
 
-func (e *Entry) AddOption(option *Option) error {
+func (e *Entry) AddOption(o *Option) error {
+	if o == nil {
+		return &UsageError{errors.New("no option provided")}
+	}
+	e.options = append(e.options, *o)
 	return nil
 }
 

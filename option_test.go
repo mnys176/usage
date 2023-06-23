@@ -56,7 +56,10 @@ func stringToOption(str string) *Option {
 
 	aliasesString, argsString, _ := strings.Cut(aliasesAndArgs, " | ")
 	aliases := strings.Split(aliasesString, " ")
-	args := strings.Split(argsString, " ")
+	args := make([]string, 0)
+	if len(argsString) > 0 {
+		args = strings.Split(argsString, " ")
+	}
 
 	var description strings.Builder
 	for _, line := range strings.Split(choppedDescription, "\n"+strings.Repeat(indent, 2)) {
@@ -69,7 +72,7 @@ func stringToOption(str string) *Option {
 
 	return &Option{
 		Description: strings.Replace(strings.TrimSpace(description.String()), "> <", fmt.Sprintf("> %s <", strings.Repeat("a", 72)), 1),
-		Tmpl: `    {{join .Aliases " "}}{{if gt 0 (len .Args)}} | {{end}}{{if .Description}}
+		Tmpl: `    {{join .Aliases " "}}{{if .Args}} | {{join .Args " "}}{{end}}{{if .Description}}
         {{with chop .Description 64}}{{join . "\n        "}}{{end}}{{end}}`,
 		aliases: aliases,
 		args:    args,

@@ -5,23 +5,6 @@ import (
 	"testing"
 )
 
-func assertArgs(t *testing.T, got, want []string) {
-	if len(got) != len(want) {
-		t.Fatalf("%d args returned but wanted %d", len(got), len(want))
-	}
-	for i, gotArg := range got {
-		if gotArg != want[i] {
-			t.Errorf("arg is %q but should be %q", gotArg, want[i])
-		}
-	}
-}
-
-func assertName(t *testing.T, got, want string) {
-	if got != want {
-		t.Errorf("name is %q but should be %q", got, want)
-	}
-}
-
 type entryArgsTester struct {
 	oArgs []string
 }

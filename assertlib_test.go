@@ -126,6 +126,23 @@ func assertOptions(t *testing.T, got, want []Option) {
 	}
 }
 
+func assertEntry(t *testing.T, got, want *Entry) {
+	assertName(t, got.name, want.name)
+	assertDescription(t, got.Description, want.Description)
+	assertTemplate(t, got.Tmpl, want.Tmpl)
+	assertArgs(t, got.args, want.args)
+	assertOptions(t, got.options, want.options)
+}
+
+func assertEntries(t *testing.T, got, want []Entry) {
+	if len(got) != len(want) {
+		t.Fatalf("%d entries returned but wanted %d", len(got), len(want))
+	}
+	for i, gotEntry := range got {
+		assertEntry(t, &gotEntry, &want[i])
+	}
+}
+
 func assertErrorString(t *testing.T, got, want string) {
 	if got != want {
 		t.Errorf("error is %q but should be %q", got, want)

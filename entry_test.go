@@ -2,6 +2,7 @@ package usage
 
 import (
 	"errors"
+	"sort"
 	"testing"
 )
 
@@ -26,6 +27,24 @@ func (tester entryOptionsTester) assertEntryOptions() func(*testing.T) {
 		sampleEntry := Entry{options: tester.oOptions}
 		got := sampleEntry.Options()
 		assertOptions(t, got, tester.oOptions)
+	}
+}
+
+type entryEntriesTester struct {
+	oEntries []Entry
+}
+
+func (tester entryEntriesTester) assertEntries() func(*testing.T) {
+	return func(t *testing.T) {
+		sort.Slice(tester.oEntries, func(i, j int) bool {
+			return tester.oEntries[i].name < tester.oEntries[j].name
+		})
+		sampleEntry := Entry{children: make(map[string]*Entry)}
+		for i, e := range tester.oEntries {
+			sampleEntry.children[e.name] = &tester.oEntries[i]
+		}
+		got := sampleEntry.Entries()
+		assertEntries(t, got, tester.oEntries)
 	}
 }
 
@@ -136,6 +155,62 @@ func TestEntryOptions(t *testing.T) {
 	t.Run("no options", entryOptionsTester{
 		oOptions: make([]Option, 0),
 	}.assertEntryOptions())
+}
+
+func TestEntryEntries(t *testing.T) {
+	t.Run("baseline", entryEntriesTester{
+		oEntries: []Entry{{
+			Description: "foo",
+			Tmpl:        "foo",
+			name:        "foo",
+			options: []Option{{
+				aliases:     []string{"foo"},
+				Description: "foo",
+				args:        []string{"foo"},
+			}},
+			args: []string{"foo"},
+		}},
+	}.assertEntries())
+	t.Run("multiple entries", entryEntriesTester{
+		oEntries: []Entry{
+			{
+				Description: "foo",
+				Tmpl:        "foo",
+				name:        "foo",
+				options: []Option{{
+					aliases:     []string{"foo"},
+					Description: "foo",
+					args:        []string{"foo"},
+				}},
+				args: []string{"foo"},
+			},
+			{
+				Description: "bar",
+				Tmpl:        "bar",
+				name:        "bar",
+				options: []Option{{
+					aliases:     []string{"bar"},
+					Description: "bar",
+					args:        []string{"bar"},
+				}},
+				args: []string{"bar"},
+			},
+			{
+				Description: "baz",
+				Tmpl:        "baz",
+				name:        "baz",
+				options: []Option{{
+					aliases:     []string{"baz"},
+					Description: "baz",
+					args:        []string{"baz"},
+				}},
+				args: []string{"baz"},
+			},
+		},
+	}.assertEntries())
+	t.Run("no entries", entryEntriesTester{
+		oEntries: make([]Entry, 0),
+	}.assertEntries())
 }
 
 func TestEntryName(t *testing.T) {

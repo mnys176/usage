@@ -1,6 +1,9 @@
 package usage
 
-import "errors"
+import (
+	"errors"
+	"sort"
+)
 
 type Entry struct {
 	Description string
@@ -21,7 +24,14 @@ func (e Entry) Options() []Option {
 }
 
 func (e Entry) Entries() []Entry {
-	return nil
+	output := make([]Entry, 0)
+	for _, v := range e.children {
+		output = append(output, *v)
+	}
+	sort.Slice(output, func(i, j int) bool {
+		return output[i].name < output[j].name
+	})
+	return output
 }
 
 func (e Entry) Name() string {

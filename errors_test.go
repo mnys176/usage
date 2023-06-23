@@ -7,30 +7,28 @@ import (
 )
 
 type usageErrorErrorTester struct {
-	oString string
+	oErr string
 }
 
-func (tester usageErrorErrorTester) assertString() func(*testing.T) {
+func (tester usageErrorErrorTester) assertErrorString() func(*testing.T) {
 	return func(t *testing.T) {
-		_, err, _ := strings.Cut(tester.oString, ": ")
+		_, err, _ := strings.Cut(tester.oErr, ": ")
 		sampleUsageError := &UsageError{errors.New(err)}
-		if got := sampleUsageError.Error(); got != tester.oString {
-			t.Errorf("error is %q but should be %q", got, tester.oString)
-		}
+		got := sampleUsageError.Error()
+		assertErrorString(t, got, tester.oErr)
 	}
 }
 
 type usageErrorIsTester struct {
-	iTarget error
-	oBool   bool
+	iTarget   error
+	oEquality bool
 }
 
-func (tester usageErrorIsTester) assertBool() func(*testing.T) {
+func (tester usageErrorIsTester) assertErrorEquality() func(*testing.T) {
 	return func(t *testing.T) {
 		sampleUsageError := &UsageError{errors.New("foo")}
-		if got := sampleUsageError.Is(tester.iTarget); got != tester.oBool {
-			t.Errorf("result is %t but should be %t", got, tester.oBool)
-		}
+		got := sampleUsageError.Is(tester.iTarget)
+		assertErrorEquality(t, got, tester.oEquality)
 	}
 }
 
@@ -41,36 +39,34 @@ type usageErrorUnwrapTester struct {
 func (tester usageErrorUnwrapTester) assertError() func(*testing.T) {
 	return func(t *testing.T) {
 		sampleUsageError := &UsageError{tester.oErr}
-		if got := sampleUsageError.Unwrap(); !errors.Is(got, tester.oErr) {
-			t.Errorf("error is %q but should be %q", got.Error(), tester.oErr.Error())
-		}
+		got := sampleUsageError.Unwrap()
+		assertError(t, got, tester.oErr)
 	}
 }
 
 func (tester usageErrorUnwrapTester) assertNil() func(*testing.T) {
 	return func(t *testing.T) {
 		sampleUsageError := &UsageError{}
-		if got := sampleUsageError.Unwrap(); got != nil {
-			t.Errorf("error is %q but should be nil", got.Error())
-		}
+		got := sampleUsageError.Unwrap()
+		assertNilError(t, got)
 	}
 }
 
 func TestUsageErrorError(t *testing.T) {
 	t.Run("baseline", usageErrorErrorTester{
-		oString: "usage: foo",
-	}.assertString())
+		oErr: "usage: foo",
+	}.assertErrorString())
 }
 
 func TestUsageErrorIs(t *testing.T) {
 	t.Run("baseline", usageErrorIsTester{
-		iTarget: errors.New("usage: foo"),
-		oBool:   true,
-	}.assertBool())
+		iTarget:   errors.New("usage: foo"),
+		oEquality: true,
+	}.assertErrorEquality())
 	t.Run("is not", usageErrorIsTester{
-		iTarget: errors.New("usage: bar"),
-		oBool:   false,
-	}.assertBool())
+		iTarget:   errors.New("usage: bar"),
+		oEquality: false,
+	}.assertErrorEquality())
 }
 
 func TestUsageErrorUnwrap(t *testing.T) {

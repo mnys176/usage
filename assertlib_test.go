@@ -40,6 +40,13 @@ func assertEmptyAliasStringError(t *testing.T, got, want error) {
 	assertError(t, got, want)
 }
 
+func assertEmptyNameStringError(t *testing.T, got, want error) {
+	if got == nil {
+		t.Fatal("no error returned with an empty name string")
+	}
+	assertError(t, got, want)
+}
+
 func assertName(t *testing.T, got, want string) {
 	if got != want {
 		t.Errorf("name is %q but should be %q", got, want)
@@ -95,6 +102,18 @@ func assertOption(t *testing.T, got, want *Option) {
 func assertNilOption(t *testing.T, got *Option) {
 	if got != nil {
 		t.Errorf("got %+v option but should be nil", got)
+	}
+}
+
+func assertErrorString(t *testing.T, got, want string) {
+	if got != want {
+		t.Errorf("error is %q but should be %q", got, want)
+	}
+}
+
+func assertErrorEquality(t *testing.T, got, want bool) {
+	if got != want {
+		t.Errorf("error equality is %t but should be %t", got, want)
 	}
 }
 

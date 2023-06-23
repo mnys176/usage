@@ -1,4 +1,4 @@
-package main
+package usage
 
 import (
 	"errors"
@@ -13,6 +13,12 @@ func assertArgs(t *testing.T, got, want []string) {
 		if gotArg != want[i] {
 			t.Errorf("arg is %q but should be %q", gotArg, want[i])
 		}
+	}
+}
+
+func assertName(t *testing.T, got, want string) {
+	if got != want {
+		t.Errorf("name is %q but should be %q", got, want)
 	}
 }
 
@@ -35,9 +41,8 @@ type entryNameTester struct {
 func (tester entryNameTester) assertName() func(*testing.T) {
 	return func(t *testing.T) {
 		sampleEntry := Entry{name: tester.oName}
-		if got := sampleEntry.Name(); got != tester.oName {
-			t.Errorf("name is %q but should be %q", got, tester.oName)
-		}
+		got := sampleEntry.Name()
+		assertName(t, got, tester.oName)
 	}
 }
 
@@ -72,6 +77,32 @@ func (tester entryAddArgTester) assertEmptyArgStringErr() func(*testing.T) {
 	}
 }
 
+type entrySetNameTester struct {
+	iName string
+	oErr  error
+}
+
+func (tester entrySetNameTester) assertName() func(*testing.T) {
+	return func(t *testing.T) {
+		sampleEntry := Entry{name: tester.iName}
+		if gotErr := sampleEntry.SetName(tester.iName); gotErr != nil {
+			t.Errorf("got %q error but should be nil", gotErr)
+		}
+		assertName(t, sampleEntry.name, tester.iName)
+	}
+}
+
+func (tester entrySetNameTester) assertEmptyNameStringErr() func(*testing.T) {
+	return func(t *testing.T) {
+		sampleEntry := Entry{name: "foo"}
+		got := sampleEntry.SetName(tester.iName)
+		if got == nil {
+			t.Fatal("no error returned with an empty name string")
+		}
+		assertError(t, got, tester.oErr)
+	}
+}
+
 func TestEntryArgs(t *testing.T) {
 	t.Run("baseline", entryArgsTester{
 		oArgs: []string{"foo"},
@@ -97,4 +128,13 @@ func TestEntryAddArg(t *testing.T) {
 	t.Run("empty arg string", entryAddArgTester{
 		oErr: errors.New("usage: arg string must not be empty"),
 	}.assertEmptyArgStringErr())
+}
+
+func TestEntrySetName(t *testing.T) {
+	t.Run("baseline", entrySetNameTester{
+		iName: "foo",
+	}.assertName())
+	t.Run("empty name string", entrySetNameTester{
+		oErr: errors.New("usage: name string must not be empty"),
+	}.assertEmptyNameStringErr())
 }

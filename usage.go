@@ -1,4 +1,4 @@
-package main
+package usage
 
 func Init(name string) error {
 	return nil

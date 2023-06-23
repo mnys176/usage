@@ -1,4 +1,4 @@
-package main
+package usage
 
 import "errors"
 
@@ -45,6 +45,10 @@ func (e *Entry) AddEntry(entry *Entry) error {
 }
 
 func (e *Entry) SetName(name string) error {
+	if name == "" {
+		return &UsageError{errors.New("name string must not be empty")}
+	}
+	e.name = name
 	return nil
 }
 

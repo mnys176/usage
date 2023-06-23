@@ -25,6 +25,19 @@ func (tester entryArgsTester) assertArgs() func(*testing.T) {
 	}
 }
 
+type entryNameTester struct {
+	oName string
+}
+
+func (tester entryNameTester) assertName() func(*testing.T) {
+	return func(t *testing.T) {
+		sampleEntry := Entry{name: tester.oName}
+		if got := sampleEntry.Name(); got != tester.oName {
+			t.Errorf("name is %q but should be %q", got, tester.oName)
+		}
+	}
+}
+
 func TestEntryArgs(t *testing.T) {
 	t.Run("baseline", entryArgsTester{
 		oArgs: []string{"foo"},
@@ -35,4 +48,10 @@ func TestEntryArgs(t *testing.T) {
 	t.Run("no args", entryArgsTester{
 		oArgs: make([]string, 0),
 	}.assertArgs())
+}
+
+func TestEntryName(t *testing.T) {
+	t.Run("baseline", entryNameTester{
+		oName: "foo",
+	}.assertName())
 }

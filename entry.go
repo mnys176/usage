@@ -23,7 +23,7 @@ func (e Entry) Entries() []Entry {
 }
 
 func (e Entry) Name() string {
-	return ""
+	return e.name
 }
 
 func (e *Entry) AddArg(arg string) error {

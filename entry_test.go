@@ -61,6 +61,25 @@ func (tester entryNameTester) assertName() func(*testing.T) {
 	}
 }
 
+type entryAncestryTester struct {
+	oAncestry []string
+}
+
+func (tester entryAncestryTester) assertAncestry() func(*testing.T) {
+	return func(t *testing.T) {
+		entries := make([]Entry, len(tester.oAncestry))
+		for i, name := range tester.oAncestry {
+			entries[i].name = name
+			if i < len(tester.oAncestry)-1 {
+				entries[i].parent = &entries[i+1]
+			}
+		}
+		sampleEntry := &entries[0]
+		got := sampleEntry.Ancestry()
+		assertAncestry(t, got, tester.oAncestry)
+	}
+}
+
 type entryAddArgTester struct {
 	iArg string
 	oErr error
@@ -215,6 +234,19 @@ func (tester entrySetNameTester) assertEmptyNameStringError() func(*testing.T) {
 	}
 }
 
+type entryUsageTester struct {
+	oUsage string
+}
+
+func (tester entryUsageTester) assertUsage() func(*testing.T) {
+	return func(t *testing.T) {
+		sampleEntry := stringToEntry(tester.oUsage)
+		got, gotErr := sampleEntry.Usage()
+		assertNilError(t, gotErr)
+		assertUsage(t, got, tester.oUsage)
+	}
+}
+
 type newEntryTester struct {
 	iName        string
 	iDescription string
@@ -348,6 +380,15 @@ func TestEntryName(t *testing.T) {
 	}.assertName())
 }
 
+func TestEntryAncestry(t *testing.T) {
+	t.Run("baseline", entryAncestryTester{
+		oAncestry: []string{"foo", "bar", "baz"},
+	}.assertAncestry())
+	t.Run("root", entryAncestryTester{
+		oAncestry: []string{"foo"},
+	}.assertAncestry())
+}
+
 func TestEntryAddArg(t *testing.T) {
 	t.Run("baseline", entryAddArgTester{
 		iArg: "foo",
@@ -414,6 +455,92 @@ func TestEntrySetName(t *testing.T) {
 	t.Run("empty name string", entrySetNameTester{
 		oErr: errors.New("usage: name string must not be empty"),
 	}.assertEmptyNameStringError())
+}
+
+func TestEntryUsage(t *testing.T) {
+	const (
+		indent      = "    "
+		description = "some very long description that will definitely push the limits\n" +
+			indent + "of the screen size (it is very likely that this will cause the\n" +
+			indent + "line break at 64 characters)\n" +
+			indent + "\n" +
+			indent + "here's another paragraph just in case with a very long word\n" +
+			indent + "between these brackets > < that will not appear in the final\n" +
+			indent + "output because it is longer than a line"
+	)
+
+	t.Run("baseline", entryUsageTester{
+		oUsage: "base",
+	}.assertUsage())
+	t.Run("ancestry", entryUsageTester{
+		oUsage: "parent:base",
+	}.assertUsage())
+	t.Run("args", entryUsageTester{
+		oUsage: "base <args>",
+	}.assertUsage())
+	t.Run("ancestry args", entryUsageTester{
+		oUsage: "parent:base <args>",
+	}.assertUsage())
+	t.Run("options", entryUsageTester{
+		oUsage: "base [options]",
+	}.assertUsage())
+	t.Run("ancestry options", entryUsageTester{
+		oUsage: "parent:base [options]",
+	}.assertUsage())
+	t.Run("options args", entryUsageTester{
+		oUsage: "base [options] <args>",
+	}.assertUsage())
+	t.Run("ancestry options args", entryUsageTester{
+		oUsage: "parent:base [options] <args>",
+	}.assertUsage())
+	t.Run("description", entryUsageTester{
+		oUsage: "base\n" + indent + description,
+	}.assertUsage())
+	t.Run("ancestry description", entryUsageTester{
+		oUsage: "parent:base\n" + indent + description,
+	}.assertUsage())
+	t.Run("args description", entryUsageTester{
+		oUsage: "base <args>\n" + indent + description,
+	}.assertUsage())
+	t.Run("ancestry args description", entryUsageTester{
+		oUsage: "parent:base <args>\n" + indent + description,
+	}.assertUsage())
+	t.Run("options description", entryUsageTester{
+		oUsage: "base [options]\n" + indent + description,
+	}.assertUsage())
+	t.Run("ancestry options description", entryUsageTester{
+		oUsage: "parent:base [options]\n" + indent + description,
+	}.assertUsage())
+	t.Run("options args description", entryUsageTester{
+		oUsage: "base [options] <args>\n" + indent + description,
+	}.assertUsage())
+	t.Run("ancestry options args description", entryUsageTester{
+		oUsage: "parent:base [options] <args>\n" + indent + description,
+	}.assertUsage())
+	t.Run("entries", entryUsageTester{
+		oUsage: "base <command>",
+	}.assertUsage())
+	t.Run("ancestry entries", entryUsageTester{
+		oUsage: "parent:base <command>",
+	}.assertUsage())
+	t.Run("options entries", entryUsageTester{
+		oUsage: "base [options] <command>",
+	}.assertUsage())
+	t.Run("ancestry options entries", entryUsageTester{
+		oUsage: "parent:base [options] <command>",
+	}.assertUsage())
+	t.Run("entries description", entryUsageTester{
+		oUsage: "base <command>\n" + indent + description,
+	}.assertUsage())
+	t.Run("ancestry entries description", entryUsageTester{
+		oUsage: "parent:base <command>\n" + indent + description,
+	}.assertUsage())
+	t.Run("options entries description", entryUsageTester{
+		oUsage: "base [options] <command>\n" + indent + description,
+	}.assertUsage())
+	t.Run("ancestry options entries description", entryUsageTester{
+		oUsage: "parent:base [options] <command>\n" + indent + description,
+	}.assertUsage())
 }
 
 func TestNewEntry(t *testing.T) {

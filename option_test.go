@@ -2,8 +2,6 @@ package usage
 
 import (
 	"errors"
-	"fmt"
-	"strings"
 	"testing"
 )
 
@@ -190,122 +188,37 @@ func TestOptionSetAliases(t *testing.T) {
 }
 
 func TestOptionUsage(t *testing.T) {
-	indent := "    "
-	longDescription := "some very long description that will definitely push the limits\n" +
-		indent + indent + "of the screen size (it is very likely that this will cause the\n" +
-		indent + indent + "line break at 64 characters)\n" +
-		indent + indent + "\n" +
-		indent + indent + "here's another paragraph just in case with a very long word\n" +
-		indent + indent + "between these brackets > < that will not appear in the final\n" +
-		indent + indent + "output because it is longer than a line"
+	const (
+		indent      = "    "
+		description = "some very long description that will definitely push the limits\n" +
+			indent + "of the screen size (it is very likely that this will cause the\n" +
+			indent + "line break at 64 characters)\n" +
+			indent + "\n" +
+			indent + "here's another paragraph just in case with a very long word\n" +
+			indent + "between these brackets > < that will not appear in the final\n" +
+			indent + "output because it is longer than a line"
+	)
 
 	t.Run("baseline", optionUsageTester{
-		oUsage: indent + "--base",
+		oUsage: "base",
+	}.assertUsage())
+	t.Run("args", optionUsageTester{
+		oUsage: "base <args>",
 	}.assertUsage())
 	t.Run("description", optionUsageTester{
-		oUsage: fmt.Sprintf(
-			"%s--description\n%ssome description",
-			indent,
-			strings.Repeat(indent, 2),
-		),
-	}.assertUsage())
-	t.Run("long description", optionUsageTester{
-		oUsage: fmt.Sprintf(
-			"%s--long-description\n%s%s",
-			indent,
-			strings.Repeat(indent, 2),
-			longDescription,
-		),
-	}.assertUsage())
-	t.Run("single arg", optionUsageTester{
-		oUsage: indent + "--single-arg <arg1>",
-	}.assertUsage())
-	t.Run("multiple args", optionUsageTester{
-		oUsage: indent + "--multiple-args <arg1> <arg2> <arg3>",
-	}.assertUsage())
-	t.Run("description single arg", optionUsageTester{
-		oUsage: fmt.Sprintf(
-			"%s--description-single-arg <arg1>\n%ssome description",
-			indent,
-			strings.Repeat(indent, 2),
-		),
-	}.assertUsage())
-	t.Run("description multiple args", optionUsageTester{
-		oUsage: fmt.Sprintf(
-			"%s--description-multiple-args <arg1> <arg2> <arg3>\n%ssome description",
-			indent,
-			strings.Repeat(indent, 2),
-		),
-	}.assertUsage())
-	t.Run("long description single arg", optionUsageTester{
-		oUsage: fmt.Sprintf(
-			"%s--long-description-single-arg <arg1>\n%s%s",
-			indent,
-			strings.Repeat(indent, 2),
-			longDescription,
-		),
-	}.assertUsage())
-	t.Run("long description multiple args", optionUsageTester{
-		oUsage: fmt.Sprintf(
-			"%s--long-description-multiple-arg <arg1> <arg2> <arg3>\n%s%s",
-			indent,
-			strings.Repeat(indent, 2),
-			longDescription,
-		),
+		oUsage: "base\n" + indent + description,
 	}.assertUsage())
 	t.Run("multiple aliases", optionUsageTester{
-		oUsage: indent + "--multiple-aliases, --another-one",
+		oUsage: "base,alias",
+	}.assertUsage())
+	t.Run("multiple aliases args", optionUsageTester{
+		oUsage: "base,alias <args>",
 	}.assertUsage())
 	t.Run("multiple aliases description", optionUsageTester{
-		oUsage: fmt.Sprintf(
-			"%s--multiple-aliases, --another-one\n%ssome description",
-			indent,
-			strings.Repeat(indent, 2),
-		),
+		oUsage: "base,alias\n" + indent + description,
 	}.assertUsage())
-	t.Run("multiple aliases long description", optionUsageTester{
-		oUsage: fmt.Sprintf(
-			"%s--multiple-aliases, --long-description\n%s%s",
-			indent,
-			strings.Repeat(indent, 2),
-			longDescription,
-		),
-	}.assertUsage())
-	t.Run("multiple aliases single arg", optionUsageTester{
-		oUsage: indent + "--multiple-aliases, --another-one <foo>",
-	}.assertUsage())
-	t.Run("multiple aliases multiple args", optionUsageTester{
-		oUsage: indent + "--multiple-aliases, --another-one <foo> <bar> <baz>",
-	}.assertUsage())
-	t.Run("multiple aliases description single arg", optionUsageTester{
-		oUsage: fmt.Sprintf(
-			"%s--multiple-aliases, -m <foo>\n%ssome description",
-			indent,
-			strings.Repeat(indent, 2),
-		),
-	}.assertUsage())
-	t.Run("multiple aliases long description single arg", optionUsageTester{
-		oUsage: fmt.Sprintf(
-			"%s--multiple-aliases, --another-one <foo>\n%s%s",
-			indent,
-			strings.Repeat(indent, 2),
-			longDescription,
-		),
-	}.assertUsage())
-	t.Run("multiple aliases description single arg", optionUsageTester{
-		oUsage: fmt.Sprintf(
-			"%s--multiple-aliases, --another-one <foo> <bar> <baz>\n%ssome description",
-			indent,
-			strings.Repeat(indent, 2),
-		),
-	}.assertUsage())
-	t.Run("multiple aliases long description single arg", optionUsageTester{
-		oUsage: fmt.Sprintf(
-			"%s--multiple-aliases, --another-one <foo> <bar> <baz>\n%s%s",
-			indent,
-			strings.Repeat(indent, 2),
-			longDescription,
-		),
+	t.Run("multiple aliases args description", optionUsageTester{
+		oUsage: "base,alias <args>\n" + indent + description,
 	}.assertUsage())
 }
 

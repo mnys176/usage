@@ -138,6 +138,17 @@ func assertArgs(t *testing.T, got, want []string) {
 	}
 }
 
+func assertAncestry(t *testing.T, got, want []string) {
+	if len(got) != len(want) {
+		t.Fatalf("%d ancestors returned but wanted %d", len(got), len(want))
+	}
+	for i, gotAncestor := range got {
+		if gotAncestor != want[i] {
+			t.Errorf("ancestor is %q but should be %q", gotAncestor, want[i])
+		}
+	}
+}
+
 func assertOption(t *testing.T, got, want *Option) {
 	assertDescription(t, got.Description, want.Description)
 	assertTemplate(t, got.Tmpl, want.Tmpl)
@@ -229,31 +240,70 @@ func assertErrorEquality(t *testing.T, got, want bool) {
 }
 
 func stringToOption(str string) *Option {
-	indent := "    "
-	aliasesAndArgs, choppedDescription, _ := strings.Cut(str, "\n"+strings.Repeat(indent, 2))
-	aliasesAndArgs = strings.TrimPrefix(aliasesAndArgs, indent)
+	const indent = "    "
+	aliasesAndArgsString, choppedDescription, _ := strings.Cut(str, "\n"+indent)
+	aliasesString, argsString, _ := strings.Cut(aliasesAndArgsString, " ")
 
-	aliasesString, argsString, _ := strings.Cut(aliasesAndArgs, " | ")
-	aliases := strings.Split(aliasesString, " ")
-	args := make([]string, 0)
-	if len(argsString) > 0 {
-		args = strings.Split(argsString, " ")
-	}
-
-	var description strings.Builder
-	for _, line := range strings.Split(choppedDescription, "\n"+strings.Repeat(indent, 2)) {
-		if line == "" {
-			description.WriteString("\n\n")
-		} else {
-			description.WriteString(" " + line)
+	aliases := strings.Split(aliasesString, ",")
+	var descriptionBuilder strings.Builder
+	if choppedDescription != "" {
+		for _, line := range strings.Split(choppedDescription, "\n"+indent) {
+			if line == "" {
+				descriptionBuilder.WriteString("\n\n")
+			} else {
+				descriptionBuilder.WriteString(" " + line)
+			}
 		}
 	}
-
-	return &Option{
-		Description: strings.Replace(strings.TrimSpace(description.String()), "> <", fmt.Sprintf("> %s <", strings.Repeat("a", 72)), 1),
-		Tmpl: `    {{join .Aliases " "}}{{if .Args}} | {{join .Args " "}}{{end}}{{if .Description}}
-        {{with chop .Description 64}}{{join . "\n        "}}{{end}}{{end}}`,
+	description := strings.ReplaceAll(descriptionBuilder.String(), "\n\n ", "\n\n")
+	output := &Option{
+		Description: strings.TrimPrefix(description, " "),
+		Tmpl: fmt.Sprintf(`{{join .Aliases ","}}{{if .Args}} <args>{{end}}{{if .Description}}
+    {{with chop .Description 64}}{{join . "\n%s"}}{{end}}{{end}}`, indent),
 		aliases: aliases,
-		args:    args,
 	}
+	if strings.Contains(argsString, "<args>") {
+		output.args = make([]string, 1)
+	}
+	return output
+}
+
+func stringToEntry(str string) *Entry {
+	const indent = "    "
+	ancestryAndTraitString, choppedDescription, _ := strings.Cut(str, "\n"+indent)
+	ancestryString, traitString, _ := strings.Cut(ancestryAndTraitString, " ")
+
+	ancestry := strings.Split(ancestryString, ":")
+	entries := make([]Entry, len(ancestry))
+	for i := len(ancestry) - 1; i >= 0; i-- {
+		entries[i] = Entry{name: ancestry[i]}
+	}
+	for i := len(entries) - 1; i >= 1; i-- {
+		entries[i].parent = &entries[i-1]
+	}
+	var descriptionBuilder strings.Builder
+	if choppedDescription != "" {
+		for _, line := range strings.Split(choppedDescription, "\n"+indent) {
+			if line == "" {
+				descriptionBuilder.WriteString("\n\n")
+			} else {
+				descriptionBuilder.WriteString(" " + line)
+			}
+		}
+	}
+	description := strings.ReplaceAll(descriptionBuilder.String(), "\n\n ", "\n\n")
+	output := &entries[len(entries)-1]
+	output.Description = strings.TrimPrefix(description, " ")
+	output.Tmpl = `{{join (reverse .Ancestry) ":"}}{{if .Options}} [options]{{end}}{{if .Entries}} <command>{{end}}{{if .Args}} <args>{{end}}{{if .Description}}
+    {{with chop .Description 64}}{{join . "\n    "}}{{end}}{{end}}`
+	if strings.Contains(traitString, "<command>") {
+		output.children = map[string]*Entry{"foo": {}}
+	}
+	if strings.Contains(traitString, "[options]") {
+		output.options = make([]Option, 1)
+	}
+	if strings.Contains(traitString, "<args>") {
+		output.args = make([]string, 1)
+	}
+	return output
 }

@@ -52,6 +52,10 @@ func (o Option) Usage() string {
 	return b.String()
 }
 
+func (o *Option) setTemplate(raw string, fn template.FuncMap) {
+	o.tmpl = template.Must(template.New(strings.Join(o.aliases, "/")).Funcs(fn).Parse(raw))
+}
+
 func NewOption(aliases []string, desc string) (*Option, error) {
 	if len(aliases) == 0 {
 		return nil, &UsageError{errors.New("option must have at least one alias")}

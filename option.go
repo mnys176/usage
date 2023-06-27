@@ -66,10 +66,9 @@ func NewOption(aliases []string, desc string) (*Option, error) {
 			return nil, &UsageError{errors.New("alias string must not be empty")}
 		}
 	}
-	tmpl := defaultOptionTmpl
 	return &Option{
 		Description: desc,
-		tmpl:        tmpl,
+		tmpl:        defaultOptionTmpl,
 		aliases:     aliases,
 		args:        make([]string, 0),
 	}, nil

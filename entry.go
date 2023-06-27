@@ -124,10 +124,9 @@ func NewEntry(name, desc string) (*Entry, error) {
 	if name == "" {
 		return nil, &UsageError{errors.New("name string must not be empty")}
 	}
-	tmpl := defaultEntryTmpl
 	return &Entry{
 		Description: desc,
-		tmpl:        tmpl,
+		tmpl:        defaultEntryTmpl,
 		name:        name,
 		args:        make([]string, 0),
 		options:     make([]Option, 0),

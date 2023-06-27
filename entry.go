@@ -110,7 +110,7 @@ func (e Entry) Usage() (string, error) {
 	t := template.Must(template.New(e.name).Funcs(fn).Parse(e.Tmpl))
 	var b strings.Builder
 	err := t.Execute(&b, e)
-	return b.String(), err
+	return b.String(), &UsageError{err}
 }
 
 func (e Entry) Lookup(lookupPath string) (string, error) {

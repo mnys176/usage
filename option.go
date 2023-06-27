@@ -42,15 +42,15 @@ func (o *Option) SetAliases(aliases []string) error {
 	return nil
 }
 
-func (o Option) Usage() (string, error) {
+func (o Option) Usage() string {
 	fn := template.FuncMap{
 		"join": strings.Join,
 		"chop": chopEssay,
 	}
 	t := template.Must(template.New(strings.Join(o.aliases, "/")).Funcs(fn).Parse(o.Tmpl))
 	var b strings.Builder
-	err := t.Execute(&b, o)
-	return b.String(), err
+	t.Execute(&b, o)
+	return b.String()
 }
 
 func NewOption(aliases []string, desc string) (*Option, error) {

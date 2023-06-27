@@ -241,8 +241,7 @@ type entryUsageTester struct {
 func (tester entryUsageTester) assertUsage() func(*testing.T) {
 	return func(t *testing.T) {
 		sampleEntry := stringToEntry(tester.oUsage)
-		got, gotErr := sampleEntry.Usage()
-		assertNilError(t, gotErr)
+		got := sampleEntry.Usage()
 		assertUsage(t, got, tester.oUsage)
 	}
 }

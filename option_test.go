@@ -93,8 +93,7 @@ type optionUsageTester struct {
 func (tester optionUsageTester) assertUsage() func(*testing.T) {
 	return func(t *testing.T) {
 		sampleOption := stringToOption(tester.oUsage)
-		got, gotErr := sampleOption.Usage()
-		assertNilError(t, gotErr)
+		got := sampleOption.Usage()
 		assertUsage(t, got, tester.oUsage)
 	}
 }

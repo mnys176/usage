@@ -99,18 +99,17 @@ func (e *Entry) SetName(name string) error {
 	return nil
 }
 
-func (e Entry) Usage() (string, error) {
+func (e Entry) Usage() string {
 	fn := template.FuncMap{
 		"join":    strings.Join,
 		"reverse": reverseAncestryChain,
 		"summary": deriveSummaryString,
 		"chop":    chopEssay,
-		"usage":   optionUsage,
 	}
 	t := template.Must(template.New(e.name).Funcs(fn).Parse(e.Tmpl))
 	var b strings.Builder
-	err := t.Execute(&b, e)
-	return b.String(), &UsageError{err}
+	t.Execute(&b, e)
+	return b.String()
 }
 
 func (e Entry) Lookup(lookupPath string) (string, error) {
@@ -134,7 +133,7 @@ Commands:{{range $command := .Entries}}
         {{with chop $command.Description 64}}{{join . "\n        "}}{{end}}{{end}}{{end}}{{end}}{{if .Options}}
 
 Options:{{range $option := .Options}}
-    {{usage $option}}{{end}}{{end}}`
+    {{$option.Usage}}{{end}}{{end}}`
 	return &Entry{
 		Description: desc,
 		Tmpl:        tmpl,
@@ -222,12 +221,4 @@ func reverseAncestryChain(ancestry []string) []string {
 		reversed[len(ancestry)-i-1] = ancestry[i]
 	}
 	return reversed
-}
-
-func optionUsage(option *Option) string {
-	u, err := option.Usage()
-	if err != nil {
-		panic(err)
-	}
-	return u
 }

@@ -246,6 +246,21 @@ func (tester entryUsageTester) assertUsage() func(*testing.T) {
 	}
 }
 
+type entryLookupTester struct {
+	iEntry string
+	oUsage string
+}
+
+func (tester entryLookupTester) assertUsage() func(*testing.T) {
+	return func(t *testing.T) {
+		entry := stringToEntry(tester.oUsage)
+		sampleEntry := Entry{name: "parent", children: map[string]*Entry{"base": entry}}
+		entry.parent = &sampleEntry
+		got := sampleEntry.Lookup(tester.iEntry)
+		assertUsage(t, got, tester.oUsage)
+	}
+}
+
 type newEntryTester struct {
 	iName        string
 	iDescription string
@@ -531,6 +546,15 @@ func TestEntryUsage(t *testing.T) {
 	t.Run("ancestry options entries description", entryUsageTester{
 		oUsage: "parent:base [options] <command>\n" + indent + description,
 	}.assertUsage())
+}
+
+func TestEntryLookup(t *testing.T) {
+	t.Run("baseline", entryLookupTester{
+		iEntry: "base",
+		oUsage: "parent:base",
+	}.assertUsage())
+	t.Run("untracked entry", entryLookupTester{}.assertUsage())
+	t.Run("empty name string", entryLookupTester{}.assertUsage())
 }
 
 func TestNewEntry(t *testing.T) {

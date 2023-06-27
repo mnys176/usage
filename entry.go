@@ -113,8 +113,8 @@ func (e Entry) Usage() string {
 	return b.String()
 }
 
-func (e Entry) Lookup(lookupPath string) (string, error) {
-	return "", nil
+func (e Entry) Lookup(lookupPath string) string {
+	return ""
 }
 
 func NewEntry(name, desc string) (*Entry, error) {

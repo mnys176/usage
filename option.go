@@ -1,14 +1,18 @@
 package usage
 
 import (
+	_ "embed"
 	"errors"
 	"strings"
 	"text/template"
 )
 
+//go:embed templates/default-option.tmpl
+var defaultOptionTmpl string
+
 type Option struct {
 	Description string
-	Tmpl        string
+	tmpl        string
 	aliases     []string
 	args        []string
 }
@@ -47,7 +51,7 @@ func (o Option) Usage() string {
 		"join": strings.Join,
 		"chop": chopEssay,
 	}
-	t := template.Must(template.New(strings.Join(o.aliases, "/")).Funcs(fn).Parse(o.Tmpl))
+	t := template.Must(template.New(strings.Join(o.aliases, "/")).Funcs(fn).Parse(o.tmpl))
 	var b strings.Builder
 	t.Execute(&b, o)
 	return b.String()
@@ -62,11 +66,10 @@ func NewOption(aliases []string, desc string) (*Option, error) {
 			return nil, &UsageError{errors.New("alias string must not be empty")}
 		}
 	}
-	tmpl := `{{join .Aliases ", "}}{{if .Args}} {{join .Args " "}}{{end}}{{if .Description}}
-        {{with chop .Description 64}}{{join . "\n        "}}{{end}}{{end}}`
+	tmpl := defaultOptionTmpl
 	return &Option{
 		Description: desc,
-		Tmpl:        tmpl,
+		tmpl:        tmpl,
 		aliases:     aliases,
 		args:        make([]string, 0),
 	}, nil

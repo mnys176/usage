@@ -151,7 +151,7 @@ func assertAncestry(t *testing.T, got, want []string) {
 
 func assertOption(t *testing.T, got, want *Option) {
 	assertDescription(t, got.Description, want.Description)
-	assertTemplate(t, got.Tmpl, want.Tmpl)
+	assertTemplate(t, got.tmpl, want.tmpl)
 	assertAliases(t, got.aliases, want.aliases)
 	assertArgs(t, got.args, want.args)
 }
@@ -162,7 +162,7 @@ func assertDefaultOption(t *testing.T, got, want *Option) {
 	if got.args == nil || len(got.args) != 0 {
 		t.Error("args not initialized to an empty slice")
 	}
-	if got.Tmpl == "" {
+	if got.tmpl == "" {
 		t.Error("template not initialized to a template string")
 	}
 }
@@ -185,7 +185,7 @@ func assertOptions(t *testing.T, got, want []Option) {
 func assertEntry(t *testing.T, got, want *Entry) {
 	assertName(t, got.name, want.name)
 	assertDescription(t, got.Description, want.Description)
-	assertTemplate(t, got.Tmpl, want.Tmpl)
+	assertTemplate(t, got.tmpl, want.tmpl)
 	assertArgs(t, got.args, want.args)
 	assertOptions(t, got.options, want.options)
 	assertChildren(t, got.children, want.children)
@@ -198,7 +198,7 @@ func assertDefaultEntry(t *testing.T, got, want *Entry) {
 	if got.args == nil || len(got.args) != 0 {
 		t.Error("args not initialized to an empty slice")
 	}
-	if got.Tmpl == "" {
+	if got.tmpl == "" {
 		t.Error("template not initialized to a template string")
 	}
 	if got.options == nil || len(got.options) != 0 {
@@ -258,8 +258,8 @@ func stringToOption(str string) *Option {
 	description := strings.ReplaceAll(descriptionBuilder.String(), "\n\n ", "\n\n")
 	output := &Option{
 		Description: strings.TrimPrefix(description, " "),
-		Tmpl: fmt.Sprintf(`{{join .Aliases ","}}{{if .Args}} <args>{{end}}{{if .Description}}
-    {{with chop .Description 64}}{{join . "\n%s"}}{{end}}{{end}}`, indent),
+		tmpl: fmt.Sprintf(`{{join .Aliases ","}}{{if .Args}} <args>{{end}}{{if .Description}}
+%s{{with chop .Description 64}}{{join . "\n%s"}}{{end}}{{end}}`, indent, indent),
 		aliases: aliases,
 	}
 	if strings.Contains(argsString, "<args>") {
@@ -294,8 +294,8 @@ func stringToEntry(str string) *Entry {
 	description := strings.ReplaceAll(descriptionBuilder.String(), "\n\n ", "\n\n")
 	output := &entries[len(entries)-1]
 	output.Description = strings.TrimPrefix(description, " ")
-	output.Tmpl = `{{join (reverse .Ancestry) ":"}}{{if .Options}} [options]{{end}}{{if .Entries}} <command>{{end}}{{if .Args}} <args>{{end}}{{if .Description}}
-    {{with chop .Description 64}}{{join . "\n    "}}{{end}}{{end}}`
+	output.tmpl = fmt.Sprintf(`{{join (reverse .Ancestry) ":"}}{{if .Options}} [options]{{end}}{{if .Entries}} <command>{{end}}{{if .Args}} <args>{{end}}{{if .Description}}
+%s{{with chop .Description 64}}{{join . "\n%s"}}{{end}}{{end}}`, indent, indent)
 	if strings.Contains(traitString, "<command>") {
 		output.children = map[string]*Entry{"foo": {}}
 	}

@@ -1,6 +1,7 @@
 package usage
 
 import (
+	_ "embed"
 	"errors"
 	"regexp"
 	"sort"
@@ -8,9 +9,12 @@ import (
 	"text/template"
 )
 
+//go:embed templates/default-entry.tmpl
+var defaultEntryTmpl string
+
 type Entry struct {
 	Description string
-	Tmpl        string
+	tmpl        string
 	name        string
 	args        []string
 	options     []Option
@@ -106,7 +110,7 @@ func (e Entry) Usage() string {
 		"summary": deriveSummaryString,
 		"chop":    chopEssay,
 	}
-	t := template.Must(template.New(e.name).Funcs(fn).Parse(e.Tmpl))
+	t := template.Must(template.New(e.name).Funcs(fn).Parse(e.tmpl))
 	var b strings.Builder
 	t.Execute(&b, e)
 	return b.String()
@@ -120,23 +124,10 @@ func NewEntry(name, desc string) (*Entry, error) {
 	if name == "" {
 		return nil, &UsageError{errors.New("name string must not be empty")}
 	}
-	tmpl := `Usage:
-    {{summary .}}{{if .Entries}}
-
-    To learn more about the available options for each command,
-    use the --help flag like so:
-
-    {{.Name}} <command> --help
-
-Commands:{{range $command := .Entries}}
-    {{$command.Name}}{{if $command.Args}} {{join $command.Args " "}}{{end}}{{if $command.Description}}
-        {{with chop $command.Description 64}}{{join . "\n        "}}{{end}}{{end}}{{end}}{{end}}{{if .Options}}
-
-Options:{{range $option := .Options}}
-    {{$option.Usage}}{{end}}{{end}}`
+	tmpl := defaultEntryTmpl
 	return &Entry{
 		Description: desc,
-		Tmpl:        tmpl,
+		tmpl:        tmpl,
 		name:        name,
 		args:        make([]string, 0),
 		options:     make([]Option, 0),

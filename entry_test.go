@@ -285,7 +285,7 @@ func TestEntryOptions(t *testing.T) {
 	t.Run("baseline", entryOptionsTester{
 		oOptions: []Option{{
 			Description: "foo",
-			Tmpl:        "foo",
+			tmpl:        "foo",
 			aliases:     []string{"foo"},
 			args:        []string{"foo"},
 		}},
@@ -294,19 +294,19 @@ func TestEntryOptions(t *testing.T) {
 		oOptions: []Option{
 			{
 				Description: "foo",
-				Tmpl:        "foo",
+				tmpl:        "foo",
 				aliases:     []string{"foo"},
 				args:        []string{"foo"},
 			},
 			{
 				Description: "bar",
-				Tmpl:        "bar",
+				tmpl:        "bar",
 				aliases:     []string{"bar"},
 				args:        []string{"bar"},
 			},
 			{
 				Description: "baz",
-				Tmpl:        "baz",
+				tmpl:        "baz",
 				aliases:     []string{"baz"},
 				args:        []string{"baz"},
 			},
@@ -321,7 +321,7 @@ func TestEntryEntries(t *testing.T) {
 	t.Run("baseline", entryEntriesTester{
 		oEntries: []Entry{{
 			Description: "foo",
-			Tmpl:        "foo",
+			tmpl:        "foo",
 			name:        "foo",
 			options: []Option{{
 				aliases:     []string{"foo"},
@@ -335,7 +335,7 @@ func TestEntryEntries(t *testing.T) {
 		oEntries: []Entry{
 			{
 				Description: "foo",
-				Tmpl:        "foo",
+				tmpl:        "foo",
 				name:        "foo",
 				options: []Option{{
 					aliases:     []string{"foo"},
@@ -346,7 +346,7 @@ func TestEntryEntries(t *testing.T) {
 			},
 			{
 				Description: "bar",
-				Tmpl:        "bar",
+				tmpl:        "bar",
 				name:        "bar",
 				options: []Option{{
 					aliases:     []string{"bar"},
@@ -357,7 +357,7 @@ func TestEntryEntries(t *testing.T) {
 			},
 			{
 				Description: "baz",
-				Tmpl:        "baz",
+				tmpl:        "baz",
 				name:        "baz",
 				options: []Option{{
 					aliases:     []string{"baz"},
@@ -404,7 +404,7 @@ func TestEntryAddOption(t *testing.T) {
 	t.Run("baseline", entryAddOptionTester{
 		iOption: &Option{
 			Description: "foo",
-			Tmpl:        "foo",
+			tmpl:        "foo",
 			aliases:     []string{"foo"},
 			args:        []string{"foo"},
 		},

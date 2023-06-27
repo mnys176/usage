@@ -14,7 +14,7 @@ var defaultEntryTmpl string
 
 type Entry struct {
 	Description string
-	tmpl        string
+	tmpl        *template.Template
 	name        string
 	args        []string
 	options     []Option
@@ -104,15 +104,8 @@ func (e *Entry) SetName(name string) error {
 }
 
 func (e Entry) Usage() string {
-	fn := template.FuncMap{
-		"join":    strings.Join,
-		"reverse": reverseAncestryChain,
-		"summary": deriveSummaryString,
-		"chop":    chopEssay,
-	}
-	t := template.Must(template.New(e.name).Funcs(fn).Parse(e.tmpl))
 	var b strings.Builder
-	t.Execute(&b, e)
+	e.tmpl.Execute(&b, e)
 	return b.String()
 }
 
@@ -124,9 +117,19 @@ func NewEntry(name, desc string) (*Entry, error) {
 	if name == "" {
 		return nil, &UsageError{errors.New("name string must not be empty")}
 	}
+	tmpl := template.Must(
+		template.New(name).
+			Funcs(template.FuncMap{
+				"join":    strings.Join,
+				"reverse": reverseAncestryChain,
+				"summary": deriveSummaryString,
+				"chop":    chopEssay,
+			}).
+			Parse(defaultEntryTmpl),
+	)
 	return &Entry{
 		Description: desc,
-		tmpl:        defaultEntryTmpl,
+		tmpl:        tmpl,
 		name:        name,
 		args:        make([]string, 0),
 		options:     make([]Option, 0),

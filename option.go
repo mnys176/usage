@@ -12,7 +12,7 @@ var defaultOptionTmpl string
 
 type Option struct {
 	Description string
-	tmpl        string
+	tmpl        *template.Template
 	aliases     []string
 	args        []string
 }
@@ -47,13 +47,8 @@ func (o *Option) SetAliases(aliases []string) error {
 }
 
 func (o Option) Usage() string {
-	fn := template.FuncMap{
-		"join": strings.Join,
-		"chop": chopEssay,
-	}
-	t := template.Must(template.New(strings.Join(o.aliases, "/")).Funcs(fn).Parse(o.tmpl))
 	var b strings.Builder
-	t.Execute(&b, o)
+	o.tmpl.Execute(&b, o)
 	return b.String()
 }
 
@@ -66,9 +61,17 @@ func NewOption(aliases []string, desc string) (*Option, error) {
 			return nil, &UsageError{errors.New("alias string must not be empty")}
 		}
 	}
+	tmpl := template.Must(
+		template.New(strings.Join(aliases, "/")).
+			Funcs(template.FuncMap{
+				"join": strings.Join,
+				"chop": chopEssay,
+			}).
+			Parse(defaultOptionTmpl),
+	)
 	return &Option{
 		Description: desc,
-		tmpl:        defaultOptionTmpl,
+		tmpl:        tmpl,
 		aliases:     aliases,
 		args:        make([]string, 0),
 	}, nil

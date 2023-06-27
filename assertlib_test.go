@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"text/template"
 )
 
 func assertError(t *testing.T, got, want error) {
@@ -87,9 +88,9 @@ func assertDescription(t *testing.T, got, want string) {
 	}
 }
 
-func assertTemplate(t *testing.T, got, want string) {
+func assertTemplate(t *testing.T, got, want *template.Template) {
 	if got != want {
-		t.Errorf("template is %q but should be %q", got, want)
+		t.Errorf("template is %+v but should be %+v", got, want)
 	}
 }
 
@@ -162,8 +163,8 @@ func assertDefaultOption(t *testing.T, got, want *Option) {
 	if got.args == nil || len(got.args) != 0 {
 		t.Error("args not initialized to an empty slice")
 	}
-	if got.tmpl == "" {
-		t.Error("template not initialized to a template string")
+	if got.tmpl == nil {
+		t.Error("template not initialized to a template object")
 	}
 }
 
@@ -198,8 +199,8 @@ func assertDefaultEntry(t *testing.T, got, want *Entry) {
 	if got.args == nil || len(got.args) != 0 {
 		t.Error("args not initialized to an empty slice")
 	}
-	if got.tmpl == "" {
-		t.Error("template not initialized to a template string")
+	if got.tmpl == nil {
+		t.Error("template not initialized to a template object")
 	}
 	if got.options == nil || len(got.options) != 0 {
 		t.Error("options not initialized to an empty slice")
@@ -256,11 +257,16 @@ func stringToOption(str string) *Option {
 		}
 	}
 	description := strings.ReplaceAll(descriptionBuilder.String(), "\n\n ", "\n\n")
+
+	rawTmpl := fmt.Sprintf(`{{join .Aliases ","}}{{if .Args}} <args>{{end}}{{if .Description}}
+%s{{with chop .Description 64}}{{join . "\n%s"}}{{end}}{{end}}`, indent, indent)
+	fn := template.FuncMap{"join": strings.Join, "chop": chopEssay}
+	tmpl := template.Must(template.New("").Funcs(fn).Parse(rawTmpl))
+
 	output := &Option{
 		Description: strings.TrimPrefix(description, " "),
-		tmpl: fmt.Sprintf(`{{join .Aliases ","}}{{if .Args}} <args>{{end}}{{if .Description}}
-%s{{with chop .Description 64}}{{join . "\n%s"}}{{end}}{{end}}`, indent, indent),
-		aliases: aliases,
+		tmpl:        tmpl,
+		aliases:     aliases,
 	}
 	if strings.Contains(argsString, "<args>") {
 		output.args = make([]string, 1)
@@ -292,10 +298,20 @@ func stringToEntry(str string) *Entry {
 		}
 	}
 	description := strings.ReplaceAll(descriptionBuilder.String(), "\n\n ", "\n\n")
+
+	rawTmpl := fmt.Sprintf(`{{join (reverse .Ancestry) ":"}}{{if .Options}} [options]{{end}}{{if .Entries}} <command>{{end}}{{if .Args}} <args>{{end}}{{if .Description}}
+%s{{with chop .Description 64}}{{join . "\n%s"}}{{end}}{{end}}`, indent, indent)
+	fn := template.FuncMap{
+		"join":    strings.Join,
+		"reverse": reverseAncestryChain,
+		"summary": deriveSummaryString,
+		"chop":    chopEssay,
+	}
+	tmpl := template.Must(template.New("").Funcs(fn).Parse(rawTmpl))
+
 	output := &entries[len(entries)-1]
 	output.Description = strings.TrimPrefix(description, " ")
-	output.tmpl = fmt.Sprintf(`{{join (reverse .Ancestry) ":"}}{{if .Options}} [options]{{end}}{{if .Entries}} <command>{{end}}{{if .Args}} <args>{{end}}{{if .Description}}
-%s{{with chop .Description 64}}{{join . "\n%s"}}{{end}}{{end}}`, indent, indent)
+	output.tmpl = tmpl
 	if strings.Contains(traitString, "<command>") {
 		output.children = map[string]*Entry{"foo": {}}
 	}

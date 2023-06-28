@@ -44,7 +44,8 @@ func AddEntry(entry *Entry) error {
 }
 
 func SetName(name string) error {
-	return nil
+	checkInit()
+	return global.SetName(name)
 }
 
 func Usage() string {

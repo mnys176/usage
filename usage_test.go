@@ -271,6 +271,39 @@ func (tester addEntryTester) assertUninitializedErrorPanic() func(*testing.T) {
 	}
 }
 
+type setNameTester struct {
+	iName  string
+	oErr   error
+	oPanic error
+}
+
+func (tester setNameTester) assertName() func(*testing.T) {
+	return func(t *testing.T) {
+		global = &Entry{name: tester.iName}
+		gotErr := SetName(tester.iName)
+		assertNilError(t, gotErr)
+		assertName(t, global.name, tester.iName)
+		global = nil
+	}
+}
+
+func (tester setNameTester) assertEmptyNameStringError() func(*testing.T) {
+	return func(t *testing.T) {
+		global = &Entry{name: "foo"}
+		got := SetName(tester.iName)
+		assertEmptyNameStringError(t, got, tester.oErr)
+		global = nil
+	}
+}
+
+func (tester setNameTester) assertUninitializedErrorPanic() func(*testing.T) {
+	return func(t *testing.T) {
+		defer assertUninitializedPanic(t, tester.oPanic)
+		SetName(tester.iName)
+		assertNilEntry(t, global)
+	}
+}
+
 func TestInit(t *testing.T) {
 	t.Run("baseline", initTester{
 		iName: "foo",
@@ -383,6 +416,18 @@ func TestAddEntry(t *testing.T) {
 		oErr:   errors.New("usage: cannot add child entry with args present"),
 	}.assertExistingArgsError())
 	t.Run("uninitialized", addEntryTester{
+		oPanic: errors.New("usage: global usage not initialized"),
+	}.assertUninitializedErrorPanic())
+}
+
+func TestSetName(t *testing.T) {
+	t.Run("baseline", setNameTester{
+		iName: "foo",
+	}.assertName())
+	t.Run("empty name string", setNameTester{
+		oErr: errors.New("usage: name string must not be empty"),
+	}.assertEmptyNameStringError())
+	t.Run("uninitialized", setNameTester{
 		oPanic: errors.New("usage: global usage not initialized"),
 	}.assertUninitializedErrorPanic())
 }

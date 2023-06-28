@@ -15,16 +15,17 @@ func Init(name string) error {
 
 func Args() []string {
 	checkInit()
-	return global.args
+	return global.Args()
 }
 
 func Options() []Option {
 	checkInit()
-	return global.options
+	return global.Options()
 }
 
 func Entries() []Entry {
-	return nil
+	checkInit()
+	return global.Entries()
 }
 
 func AddArg(arg string) error {

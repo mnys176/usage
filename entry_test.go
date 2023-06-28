@@ -25,7 +25,7 @@ type entryOptionsTester struct {
 	oOptions []Option
 }
 
-func (tester entryOptionsTester) assertEntryOptions() func(*testing.T) {
+func (tester entryOptionsTester) assertOptions() func(*testing.T) {
 	return func(t *testing.T) {
 		sampleEntry := Entry{options: tester.oOptions}
 		got := sampleEntry.Options()
@@ -327,7 +327,7 @@ func TestEntryOptions(t *testing.T) {
 			aliases:     []string{"foo"},
 			args:        []string{"foo"},
 		}},
-	}.assertEntryOptions())
+	}.assertOptions())
 	t.Run("multiple options", entryOptionsTester{
 		oOptions: []Option{
 			{
@@ -346,10 +346,10 @@ func TestEntryOptions(t *testing.T) {
 				args:        []string{"baz"},
 			},
 		},
-	}.assertEntryOptions())
+	}.assertOptions())
 	t.Run("no options", entryOptionsTester{
 		oOptions: make([]Option, 0),
-	}.assertEntryOptions())
+	}.assertOptions())
 }
 
 func TestEntryEntries(t *testing.T) {

@@ -52,8 +52,8 @@ func (o Option) Usage() string {
 	return b.String()
 }
 
-func (o *Option) setTemplate(raw string, fn template.FuncMap) {
-	o.tmpl = template.Must(template.New(strings.Join(o.aliases, "/")).Funcs(fn).Parse(raw))
+func (o *Option) setTemplate(tmpl *template.Template) {
+	o.tmpl = tmpl
 }
 
 func NewOption(aliases []string, desc string) (*Option, error) {

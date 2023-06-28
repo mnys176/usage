@@ -4,7 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strings"
 	"testing"
+	"text/template"
 )
 
 type initTester struct {
@@ -326,6 +328,53 @@ func (tester usageTester) assertUninitializedErrorPanic() func(*testing.T) {
 	}
 }
 
+type lookupTester struct {
+	iLookup string
+	oUsage  string
+	oPanic  error
+}
+
+func (tester lookupTester) assertUsage() func(*testing.T) {
+	return func(t *testing.T) {
+		const indent = "    "
+		rawTmpl := fmt.Sprintf(`{{join (reverse .Ancestry) ":"}}{{if .Options}} [options]{{end}}{{if .Entries}} <command>{{end}}{{if .Args}} <args>{{end}}{{if .Description}}
+%s{{with chop .Description 64}}{{join . "\n%s"}}{{end}}{{end}}`, indent, indent)
+		fn := template.FuncMap{
+			"join":    strings.Join,
+			"reverse": reverseAncestryChain,
+			"chop":    chopEssay,
+		}
+		iterations := 3
+		global = &Entry{
+			name:     "base",
+			children: make(map[string]*Entry),
+			tmpl:     template.Must(template.New("").Funcs(fn).Parse(rawTmpl)),
+		}
+		ptr := global
+		for i := 1; i <= iterations; i++ {
+			entry := Entry{
+				name:     fmt.Sprintf("level-%d", i),
+				children: make(map[string]*Entry),
+				parent:   ptr,
+				tmpl:     template.Must(template.New("").Funcs(fn).Parse(rawTmpl)),
+			}
+			ptr.children[entry.name] = &entry
+			ptr = &entry
+		}
+		got := Lookup(tester.iLookup)
+		assertUsage(t, got, tester.oUsage)
+		global = nil
+	}
+}
+
+func (tester lookupTester) assertUninitializedErrorPanic() func(*testing.T) {
+	return func(t *testing.T) {
+		defer assertUninitializedPanic(t, tester.oPanic)
+		Lookup(tester.iLookup)
+		assertNilEntry(t, global)
+	}
+}
+
 func TestInit(t *testing.T) {
 	t.Run("baseline", initTester{
 		iName: "foo",
@@ -539,6 +588,28 @@ func TestUsage(t *testing.T) {
 		oUsage: "parent:base [options] <command>\n" + indent + description,
 	}.assertUsage())
 	t.Run("uninitialized", usageTester{
+		oPanic: errors.New("usage: global usage not initialized"),
+	}.assertUninitializedErrorPanic())
+}
+
+func TestLookup(t *testing.T) {
+	t.Run("baseline", lookupTester{
+		iLookup: "level-1",
+		oUsage:  "base:level-1 <command>",
+	}.assertUsage())
+	t.Run("leaf lookup", lookupTester{
+		iLookup: "level-3",
+		oUsage:  "base:level-1:level-2:level-3",
+	}.assertUsage())
+	t.Run("root lookup", lookupTester{
+		iLookup: "base",
+		oUsage:  "base <command>",
+	}.assertUsage())
+	t.Run("untracked entry", lookupTester{
+		iLookup: "foo",
+	}.assertUsage())
+	t.Run("empty name string", lookupTester{}.assertUsage())
+	t.Run("uninitialized", lookupTester{
 		oPanic: errors.New("usage: global usage not initialized"),
 	}.assertUninitializedErrorPanic())
 }

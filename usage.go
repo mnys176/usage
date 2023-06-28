@@ -54,7 +54,8 @@ func Usage() string {
 }
 
 func Lookup(lookup string) string {
-	return ""
+	checkInit()
+	return global.Lookup(lookup)
 }
 
 func checkInit() {

@@ -49,6 +49,28 @@ func (tester argsTester) assertUninitializedErrorPanic() func(*testing.T) {
 	}
 }
 
+type optionsTester struct {
+	oOptions []Option
+	oPanic   error
+}
+
+func (tester optionsTester) assertOptions() func(*testing.T) {
+	return func(t *testing.T) {
+		global = &Entry{options: tester.oOptions}
+		got := Options()
+		assertOptions(t, got, tester.oOptions)
+		global = nil
+	}
+}
+
+func (tester optionsTester) assertUninitializedErrorPanic() func(*testing.T) {
+	return func(t *testing.T) {
+		defer assertUninitializedPanic(t, tester.oPanic)
+		Options()
+		assertNilEntry(t, global)
+	}
+}
+
 func TestInit(t *testing.T) {
 	t.Run("baseline", initTester{
 		iName: "foo",
@@ -63,6 +85,19 @@ func TestArgs(t *testing.T) {
 		oArgs: []string{"foo"},
 	}.assertArgs())
 	t.Run("uninitialized", argsTester{
+		oPanic: errors.New("usage: global usage not initialized"),
+	}.assertUninitializedErrorPanic())
+}
+
+func TestOptions(t *testing.T) {
+	t.Run("baseline", optionsTester{
+		oOptions: []Option{{
+			Description: "foo",
+			aliases:     []string{"foo"},
+			args:        []string{"foo"},
+		}},
+	}.assertOptions())
+	t.Run("uninitialized", optionsTester{
 		oPanic: errors.New("usage: global usage not initialized"),
 	}.assertUninitializedErrorPanic())
 }

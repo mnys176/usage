@@ -14,14 +14,13 @@ func Init(name string) error {
 }
 
 func Args() []string {
-	if global == nil {
-		panic(&UsageError{errors.New("global usage not initialized")})
-	}
+	checkInit()
 	return global.args
 }
 
 func Options() []Option {
-	return nil
+	checkInit()
+	return global.options
 }
 
 func Entries() []Entry {
@@ -50,4 +49,10 @@ func Usage() string {
 
 func Lookup(lookup string) string {
 	return ""
+}
+
+func checkInit() {
+	if global == nil {
+		panic(&UsageError{errors.New("global usage not initialized")})
+	}
 }

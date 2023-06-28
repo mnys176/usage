@@ -29,7 +29,8 @@ func Entries() []Entry {
 }
 
 func AddArg(arg string) error {
-	return nil
+	checkInit()
+	return global.AddArg(arg)
 }
 
 func AddOption(optopm *Option) error {

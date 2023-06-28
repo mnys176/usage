@@ -100,6 +100,58 @@ func (tester entriesTester) assertUninitializedErrorPanic() func(*testing.T) {
 	}
 }
 
+type addArgTester struct {
+	iArg   string
+	oErr   error
+	oPanic error
+}
+
+func (tester addArgTester) assertArgs() func(*testing.T) {
+	return func(t *testing.T) {
+		iterations := 3
+		args := make([]string, 0, iterations)
+		global = &Entry{args: make([]string, 0)}
+		for i := 1; i <= iterations; i++ {
+			gotErr := AddArg(tester.iArg)
+			assertNilError(t, gotErr)
+			args = append(args, tester.iArg)
+		}
+		assertArgs(t, global.args, args)
+		global = nil
+	}
+}
+
+func (tester addArgTester) assertEmptyArgStringError() func(*testing.T) {
+	return func(t *testing.T) {
+		global = &Entry{args: make([]string, 0)}
+		got := AddArg(tester.iArg)
+		assertEmptyArgStringError(t, got, tester.oErr)
+		global = nil
+	}
+}
+
+func (tester addArgTester) assertExistingEntriesError() func(*testing.T) {
+	return func(t *testing.T) {
+		global = &Entry{
+			children: map[string]*Entry{
+				"foo": {name: "foo"},
+			},
+			args: make([]string, 0),
+		}
+		got := AddArg(tester.iArg)
+		assertExistingEntriesError(t, got, tester.oErr)
+		global = nil
+	}
+}
+
+func (tester addArgTester) assertUninitializedErrorPanic() func(*testing.T) {
+	return func(t *testing.T) {
+		defer assertUninitializedPanic(t, tester.oPanic)
+		AddArg(tester.iArg)
+		assertNilEntry(t, global)
+	}
+}
+
 func TestInit(t *testing.T) {
 	t.Run("baseline", initTester{
 		iName: "foo",
@@ -145,6 +197,21 @@ func TestEntries(t *testing.T) {
 		}},
 	}.assertEntries())
 	t.Run("uninitialized", entriesTester{
+		oPanic: errors.New("usage: global usage not initialized"),
+	}.assertUninitializedErrorPanic())
+}
+
+func TestAddArg(t *testing.T) {
+	t.Run("baseline", addArgTester{
+		iArg: "foo",
+	}.assertArgs())
+	t.Run("empty arg string", addArgTester{
+		oErr: errors.New("usage: arg string must not be empty"),
+	}.assertEmptyArgStringError())
+	t.Run("existing entries", addArgTester{
+		oErr: errors.New("usage: cannot add arg with child entries present"),
+	}.assertExistingEntriesError())
+	t.Run("uninitialized", addArgTester{
 		oPanic: errors.New("usage: global usage not initialized"),
 	}.assertUninitializedErrorPanic())
 }

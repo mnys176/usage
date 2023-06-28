@@ -49,7 +49,8 @@ func SetName(name string) error {
 }
 
 func Usage() string {
-	return ""
+	checkInit()
+	return global.Usage()
 }
 
 func Lookup(lookup string) string {

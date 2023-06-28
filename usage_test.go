@@ -304,6 +304,28 @@ func (tester setNameTester) assertUninitializedErrorPanic() func(*testing.T) {
 	}
 }
 
+type usageTester struct {
+	oUsage string
+	oPanic error
+}
+
+func (tester usageTester) assertUsage() func(*testing.T) {
+	return func(t *testing.T) {
+		global = stringToEntry(tester.oUsage)
+		got := Usage()
+		assertUsage(t, got, tester.oUsage)
+		global = nil
+	}
+}
+
+func (tester usageTester) assertUninitializedErrorPanic() func(*testing.T) {
+	return func(t *testing.T) {
+		defer assertUninitializedPanic(t, tester.oPanic)
+		Usage()
+		assertNilEntry(t, global)
+	}
+}
+
 func TestInit(t *testing.T) {
 	t.Run("baseline", initTester{
 		iName: "foo",
@@ -428,6 +450,95 @@ func TestSetName(t *testing.T) {
 		oErr: errors.New("usage: name string must not be empty"),
 	}.assertEmptyNameStringError())
 	t.Run("uninitialized", setNameTester{
+		oPanic: errors.New("usage: global usage not initialized"),
+	}.assertUninitializedErrorPanic())
+}
+
+func TestUsage(t *testing.T) {
+	const (
+		indent      = "    "
+		description = "some very long description that will definitely push the limits\n" +
+			indent + "of the screen size (it is very likely that this will cause the\n" +
+			indent + "line break at 64 characters)\n" +
+			indent + "\n" +
+			indent + "here's another paragraph just in case with a very long word\n" +
+			indent + "between these brackets > < that will not appear in the final\n" +
+			indent + "output because it is longer than a line"
+	)
+
+	t.Run("baseline", usageTester{
+		oUsage: "base",
+	}.assertUsage())
+	t.Run("ancestry", usageTester{
+		oUsage: "parent:base",
+	}.assertUsage())
+	t.Run("args", usageTester{
+		oUsage: "base <args>",
+	}.assertUsage())
+	t.Run("ancestry args", usageTester{
+		oUsage: "parent:base <args>",
+	}.assertUsage())
+	t.Run("options", usageTester{
+		oUsage: "base [options]",
+	}.assertUsage())
+	t.Run("ancestry options", usageTester{
+		oUsage: "parent:base [options]",
+	}.assertUsage())
+	t.Run("options args", usageTester{
+		oUsage: "base [options] <args>",
+	}.assertUsage())
+	t.Run("ancestry options args", usageTester{
+		oUsage: "parent:base [options] <args>",
+	}.assertUsage())
+	t.Run("description", usageTester{
+		oUsage: "base\n" + indent + description,
+	}.assertUsage())
+	t.Run("ancestry description", usageTester{
+		oUsage: "parent:base\n" + indent + description,
+	}.assertUsage())
+	t.Run("args description", usageTester{
+		oUsage: "base <args>\n" + indent + description,
+	}.assertUsage())
+	t.Run("ancestry args description", usageTester{
+		oUsage: "parent:base <args>\n" + indent + description,
+	}.assertUsage())
+	t.Run("options description", usageTester{
+		oUsage: "base [options]\n" + indent + description,
+	}.assertUsage())
+	t.Run("ancestry options description", usageTester{
+		oUsage: "parent:base [options]\n" + indent + description,
+	}.assertUsage())
+	t.Run("options args description", usageTester{
+		oUsage: "base [options] <args>\n" + indent + description,
+	}.assertUsage())
+	t.Run("ancestry options args description", usageTester{
+		oUsage: "parent:base [options] <args>\n" + indent + description,
+	}.assertUsage())
+	t.Run("entries", usageTester{
+		oUsage: "base <command>",
+	}.assertUsage())
+	t.Run("ancestry entries", usageTester{
+		oUsage: "parent:base <command>",
+	}.assertUsage())
+	t.Run("options entries", usageTester{
+		oUsage: "base [options] <command>",
+	}.assertUsage())
+	t.Run("ancestry options entries", usageTester{
+		oUsage: "parent:base [options] <command>",
+	}.assertUsage())
+	t.Run("entries description", usageTester{
+		oUsage: "base <command>\n" + indent + description,
+	}.assertUsage())
+	t.Run("ancestry entries description", usageTester{
+		oUsage: "parent:base <command>\n" + indent + description,
+	}.assertUsage())
+	t.Run("options entries description", usageTester{
+		oUsage: "base [options] <command>\n" + indent + description,
+	}.assertUsage())
+	t.Run("ancestry options entries description", usageTester{
+		oUsage: "parent:base [options] <command>\n" + indent + description,
+	}.assertUsage())
+	t.Run("uninitialized", usageTester{
 		oPanic: errors.New("usage: global usage not initialized"),
 	}.assertUninitializedErrorPanic())
 }

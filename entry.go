@@ -103,10 +103,6 @@ func (e *Entry) SetName(name string) error {
 	return nil
 }
 
-func (e *Entry) setTemplate(raw string, fn template.FuncMap) {
-	e.tmpl = template.Must(template.New(e.name).Funcs(fn).Parse(raw))
-}
-
 func (e Entry) Usage() string {
 	var b strings.Builder
 	e.tmpl.Execute(&b, e)
@@ -130,6 +126,10 @@ func (e *Entry) Lookup(lookup string) string {
 		}
 	})
 	return u
+}
+
+func (e *Entry) setTemplate(tmpl *template.Template) {
+	e.tmpl = tmpl
 }
 
 func NewEntry(name, desc string) (*Entry, error) {

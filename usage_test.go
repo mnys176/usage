@@ -375,6 +375,38 @@ func (tester lookupTester) assertUninitializedErrorPanic() func(*testing.T) {
 	}
 }
 
+type setEntryTemplateTester struct {
+	iTemplate *template.Template
+	oPanic    error
+}
+
+func (tester setEntryTemplateTester) assertTemplate() func(*testing.T) {
+	return func(t *testing.T) {
+		iterations := 3
+		global = &Entry{name: "base", children: make(map[string]*Entry)}
+		ptr := global
+		for i := 1; i <= iterations; i++ {
+			entry := Entry{
+				name:     fmt.Sprintf("level-%d", i),
+				children: make(map[string]*Entry),
+				parent:   ptr,
+			}
+			ptr.children[entry.name] = &entry
+			ptr = &entry
+		}
+		SetEntryTemplate(tester.iTemplate)
+		global = nil
+	}
+}
+
+func (tester setEntryTemplateTester) assertUninitializedErrorPanic() func(*testing.T) {
+	return func(t *testing.T) {
+		defer assertUninitializedPanic(t, tester.oPanic)
+		SetEntryTemplate(tester.iTemplate)
+		assertNilEntry(t, global)
+	}
+}
+
 func TestInit(t *testing.T) {
 	t.Run("baseline", initTester{
 		iName: "foo",
@@ -610,6 +642,22 @@ func TestLookup(t *testing.T) {
 	}.assertUsage())
 	t.Run("empty name string", lookupTester{}.assertUsage())
 	t.Run("uninitialized", lookupTester{
+		oPanic: errors.New("usage: global usage not initialized"),
+	}.assertUninitializedErrorPanic())
+}
+
+func TestSetEntryTemplate(t *testing.T) {
+	t.Run("baseline", setEntryTemplateTester{
+		iTemplate: template.Must(template.New("").Parse("foo")),
+	}.assertTemplate())
+	t.Run("baseline", setEntryTemplateTester{
+		iTemplate: template.Must(
+			template.New("").
+				Funcs(template.FuncMap{"fn": strings.ToUpper}).
+				Parse(`{{fn "foo"}}`),
+		),
+	}.assertTemplate())
+	t.Run("uninitialized", setEntryTemplateTester{
 		oPanic: errors.New("usage: global usage not initialized"),
 	}.assertUninitializedErrorPanic())
 }

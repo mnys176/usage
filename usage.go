@@ -1,6 +1,9 @@
 package usage
 
-import "errors"
+import (
+	"errors"
+	"text/template"
+)
 
 var global *Entry
 
@@ -56,6 +59,13 @@ func Usage() string {
 func Lookup(lookup string) string {
 	checkInit()
 	return global.Lookup(lookup)
+}
+
+func SetEntryTemplate(tmpl *template.Template) {
+	checkInit()
+	visit(global, func(e *Entry) {
+		e.setTemplate(tmpl)
+	})
 }
 
 func checkInit() {

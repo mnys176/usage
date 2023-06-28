@@ -460,7 +460,7 @@ func TestEntryAddOption(t *testing.T) {
 	}.assertEmptyAliasStringError())
 }
 
-func TestAddEntry(t *testing.T) {
+func TestEntryAddEntry(t *testing.T) {
 	t.Run("baseline", entryAddEntryTester{
 		iEntry: &Entry{name: "foo"},
 	}.assertChildren())

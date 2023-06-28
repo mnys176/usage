@@ -38,8 +38,9 @@ func AddOption(option *Option) error {
 	return global.AddOption(option)
 }
 
-func AddEntry(e *Entry) error {
-	return nil
+func AddEntry(entry *Entry) error {
+	checkInit()
+	return global.AddEntry(entry)
 }
 
 func SetName(name string) error {

@@ -2,6 +2,7 @@ package usage
 
 import (
 	"errors"
+	"fmt"
 	"sort"
 	"testing"
 )
@@ -208,6 +209,68 @@ func (tester addOptionTester) assertUninitializedErrorPanic() func(*testing.T) {
 	}
 }
 
+type addEntryTester struct {
+	iEntry *Entry
+	oErr   error
+	oPanic error
+}
+
+func (tester addEntryTester) assertChildren() func(*testing.T) {
+	return func(t *testing.T) {
+		iterations := 3
+		entries := make(map[string]*Entry)
+		global = &Entry{children: make(map[string]*Entry)}
+		for i := 1; i <= iterations; i++ {
+			child := *tester.iEntry
+			child.name += fmt.Sprintf("-%d", i)
+			gotErr := AddEntry(&child)
+			assertNilError(t, gotErr)
+			assertParent(t, child.parent, global)
+			entries[child.name] = &child
+		}
+		assertChildren(t, global.children, entries)
+		global = nil
+	}
+}
+
+func (tester addEntryTester) assertNoEntryError() func(*testing.T) {
+	return func(t *testing.T) {
+		global = &Entry{children: make(map[string]*Entry)}
+		got := AddEntry(tester.iEntry)
+		assertNoEntryError(t, got, tester.oErr)
+		global = nil
+	}
+}
+
+func (tester addEntryTester) assertEmptyNameStringError() func(*testing.T) {
+	return func(t *testing.T) {
+		global = &Entry{children: make(map[string]*Entry)}
+		got := AddEntry(tester.iEntry)
+		assertEmptyNameStringError(t, got, tester.oErr)
+		global = nil
+	}
+}
+
+func (tester addEntryTester) assertExistingArgsError() func(*testing.T) {
+	return func(t *testing.T) {
+		global = &Entry{
+			children: make(map[string]*Entry),
+			args:     []string{"foo"},
+		}
+		got := AddEntry(tester.iEntry)
+		assertExistingArgsError(t, got, tester.oErr)
+		global = nil
+	}
+}
+
+func (tester addEntryTester) assertUninitializedErrorPanic() func(*testing.T) {
+	return func(t *testing.T) {
+		defer assertUninitializedPanic(t, tester.oPanic)
+		AddEntry(tester.iEntry)
+		assertNilEntry(t, global)
+	}
+}
+
 func TestInit(t *testing.T) {
 	t.Run("baseline", initTester{
 		iName: "foo",
@@ -300,6 +363,26 @@ func TestAddOption(t *testing.T) {
 		oErr:    errors.New("usage: alias string must not be empty"),
 	}.assertEmptyAliasStringError())
 	t.Run("uninitialized", addOptionTester{
+		oPanic: errors.New("usage: global usage not initialized"),
+	}.assertUninitializedErrorPanic())
+}
+
+func TestAddEntry(t *testing.T) {
+	t.Run("baseline", addEntryTester{
+		iEntry: &Entry{name: "foo"},
+	}.assertChildren())
+	t.Run("nil entry", addEntryTester{
+		oErr: errors.New("usage: no entry provided"),
+	}.assertNoEntryError())
+	t.Run("empty name string", addEntryTester{
+		iEntry: &Entry{},
+		oErr:   errors.New("usage: name string must not be empty"),
+	}.assertEmptyNameStringError())
+	t.Run("existing args", addEntryTester{
+		iEntry: &Entry{name: "foo"},
+		oErr:   errors.New("usage: cannot add child entry with args present"),
+	}.assertExistingArgsError())
+	t.Run("uninitialized", addEntryTester{
 		oPanic: errors.New("usage: global usage not initialized"),
 	}.assertUninitializedErrorPanic())
 }

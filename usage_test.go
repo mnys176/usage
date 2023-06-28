@@ -707,7 +707,7 @@ func TestSetOptionTemplate(t *testing.T) {
 	t.Run("baseline", setOptionTemplateTester{
 		iTemplate: template.Must(template.New("").Parse("foo")),
 	}.assertTemplate())
-	t.Run("baseline", setOptionTemplateTester{
+	t.Run("func map", setOptionTemplateTester{
 		iTemplate: template.Must(
 			template.New("").
 				Funcs(template.FuncMap{"fn": strings.ToUpper}).

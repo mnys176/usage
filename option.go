@@ -1,20 +1,33 @@
 package usage
 
-import "strings"
+import (
+	_ "embed"
+	"errors"
+	"strings"
+	"text/template"
+)
+
+//go:embed templates/default-option.tmpl
+var defaultOptionTmpl string
 
 type Option struct {
 	Description string
+	tmpl        *template.Template
 	aliases     []string
-	args        ArgSlice
+	args        []string
 }
 
-func (o Option) Args() ArgSlice {
+func (o Option) Args() []string {
 	return o.args
+}
+
+func (o Option) Aliases() []string {
+	return o.aliases
 }
 
 func (o *Option) AddArg(arg string) error {
 	if arg == "" {
-		return emptyArgStringErr()
+		return &UsageError{errors.New("arg string must not be empty")}
 	}
 	o.args = append(o.args, arg)
 	return nil
@@ -22,51 +35,48 @@ func (o *Option) AddArg(arg string) error {
 
 func (o *Option) SetAliases(aliases []string) error {
 	if len(aliases) == 0 {
-		return noAliasProvidedErr()
+		return &UsageError{errors.New("option must have at least one alias")}
 	}
 	for _, alias := range aliases {
 		if len(alias) == 0 {
-			return emptyAliasStringErr()
+			return &UsageError{errors.New("alias string must not be empty")}
 		}
 	}
 	o.aliases = aliases
 	return nil
 }
 
-func (o Option) String() string {
-	var optionBuilder, aliasBuilder strings.Builder
-	for _, alias := range o.aliases {
-		if len(alias) == 1 {
-			aliasBuilder.WriteString("-" + alias)
-		} else {
-			aliasBuilder.WriteString("--" + alias)
-		}
-		aliasBuilder.WriteString(", ")
-	}
-	optionBuilder.WriteString(Indent + aliasBuilder.String()[:len(aliasBuilder.String())-2])
-
-	if len(o.args) > 0 {
-		optionBuilder.WriteString(" " + o.args.String())
-	}
-	for _, line := range chopMultipleParagraphs(o.Description, 64) {
-		optionBuilder.WriteString("\n" + strings.Repeat(Indent, 2) + line)
-	}
-	return optionBuilder.String()
+func (o Option) Usage() string {
+	var b strings.Builder
+	o.tmpl.Execute(&b, o)
+	return b.String()
 }
 
-func NewOption(aliases []string, description string) (*Option, error) {
+func (o *Option) setTemplate(raw string, fn template.FuncMap) {
+	o.tmpl = template.Must(template.New(strings.Join(o.aliases, "/")).Funcs(fn).Parse(raw))
+}
+
+func NewOption(aliases []string, desc string) (*Option, error) {
 	if len(aliases) == 0 {
-		return nil, noAliasProvidedErr()
+		return nil, &UsageError{errors.New("option must have at least one alias")}
 	}
 	for _, alias := range aliases {
 		if len(alias) == 0 {
-			return nil, emptyAliasStringErr()
+			return nil, &UsageError{errors.New("alias string must not be empty")}
 		}
 	}
-
+	tmpl := template.Must(
+		template.New(strings.Join(aliases, "/")).
+			Funcs(template.FuncMap{
+				"join": strings.Join,
+				"chop": chopEssay,
+			}).
+			Parse(defaultOptionTmpl),
+	)
 	return &Option{
+		Description: desc,
+		tmpl:        tmpl,
 		aliases:     aliases,
-		Description: description,
 		args:        make([]string, 0),
 	}, nil
 }

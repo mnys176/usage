@@ -1,18 +1,28 @@
 package usage
 
 import (
-	"fmt"
+	_ "embed"
+	"errors"
+	"regexp"
+	"sort"
 	"strings"
+	"text/template"
 )
+
+//go:embed templates/default-entry.tmpl
+var defaultEntryTmpl string
 
 type Entry struct {
 	Description string
+	tmpl        *template.Template
 	name        string
-	args        ArgSlice
+	args        []string
 	options     []Option
+	children    map[string]*Entry
+	parent      *Entry
 }
 
-func (e Entry) Args() ArgSlice {
+func (e Entry) Args() []string {
 	return e.args
 }
 
@@ -20,75 +30,207 @@ func (e Entry) Options() []Option {
 	return e.options
 }
 
+func (e Entry) Entries() []Entry {
+	output := make([]Entry, 0)
+	for _, v := range e.children {
+		output = append(output, *v)
+	}
+	sort.Slice(output, func(i, j int) bool {
+		return output[i].name < output[j].name
+	})
+	return output
+}
+
+func (e Entry) Name() string {
+	return e.name
+}
+
+func (e Entry) Ancestry() []string {
+	ancestry := []string{e.name}
+	for ptr := &e; ptr.parent != nil; ptr = ptr.parent {
+		ancestry = append(ancestry, ptr.parent.name)
+	}
+	return ancestry
+}
+
 func (e *Entry) AddArg(arg string) error {
+	if len(e.children) > 0 {
+		return &UsageError{errors.New("cannot add arg with child entries present")}
+	}
 	if arg == "" {
-		return emptyArgStringErr()
+		return &UsageError{errors.New("arg string must not be empty")}
 	}
 	e.args = append(e.args, arg)
 	return nil
 }
 
-func (e *Entry) AddOption(o *Option) error {
-	if o == nil {
-		return nilOptionProvidedErr()
+func (e *Entry) AddOption(option *Option) error {
+	if option == nil {
+		return &UsageError{errors.New("no option provided")}
 	}
-	e.options = append(e.options, *o)
+	if len(option.aliases) == 0 {
+		return &UsageError{errors.New("option must have at least one alias")}
+	}
+	for _, alias := range option.aliases {
+		if len(alias) == 0 {
+			return &UsageError{errors.New("alias string must not be empty")}
+		}
+	}
+	e.options = append(e.options, *option)
+	return nil
+}
+
+func (e *Entry) AddEntry(entry *Entry) error {
+	if entry == nil {
+		return &UsageError{errors.New("no entry provided")}
+	}
+	if entry.name == "" {
+		return &UsageError{errors.New("name string must not be empty")}
+	}
+	if len(e.args) > 0 {
+		return &UsageError{errors.New("cannot add child entry with args present")}
+	}
+	entry.parent = e
+	e.children[entry.name] = entry
 	return nil
 }
 
 func (e *Entry) SetName(name string) error {
 	if name == "" {
-		return emptyNameStringErr()
+		return &UsageError{errors.New("name string must not be empty")}
 	}
 	e.name = name
 	return nil
 }
 
+func (e *Entry) setTemplate(raw string, fn template.FuncMap) {
+	e.tmpl = template.Must(template.New(e.name).Funcs(fn).Parse(raw))
+}
+
 func (e Entry) Usage() string {
-	hasOptions, hasArgs := len(e.options) > 0, len(e.args) > 0
+	var b strings.Builder
+	e.tmpl.Execute(&b, e)
+	return b.String()
+}
 
-	var usage strings.Builder
-	usage.WriteString("Usage:\n" + Indent + "%s ")
-
-	var summary strings.Builder
-	summary.WriteString(e.name)
-	if hasOptions {
-		summary.WriteString(" [options]")
+func (e *Entry) Lookup(lookup string) string {
+	if lookup == "" {
+		return lookup
 	}
-	if hasArgs {
-		summary.WriteString(" " + e.args.String())
+	if lookup == e.name {
+		return e.Usage()
 	}
-	usage.WriteString(summary.String() + "\n")
-
-	if hasOptions {
-		usage.WriteString("\nOptions:")
-		for _, o := range e.options {
-			usage.WriteString(fmt.Sprintf("\n%s\n", o.String()))
+	var u string
+	visit(e, func(entry *Entry) {
+		if len(entry.children) == 0 {
+			return
 		}
-	}
-	return usage.String()
+		if child, ok := entry.children[lookup]; ok {
+			u = child.Usage()
+		}
+	})
+	return u
 }
 
-func (e Entry) String() string {
-	var entryBuilder strings.Builder
-	entryBuilder.WriteString(Indent + e.name)
-	if len(e.args) > 0 {
-		entryBuilder.WriteString(" " + e.args.String())
-	}
-	for _, line := range chopMultipleParagraphs(e.Description, 64) {
-		entryBuilder.WriteString("\n" + strings.Repeat(Indent, 2) + line)
-	}
-	return entryBuilder.String()
-}
-
-func NewEntry(name, description string) (*Entry, error) {
+func NewEntry(name, desc string) (*Entry, error) {
 	if name == "" {
-		return nil, emptyNameStringErr()
+		return nil, &UsageError{errors.New("name string must not be empty")}
 	}
+	tmpl := template.Must(
+		template.New(name).
+			Funcs(template.FuncMap{
+				"join":    strings.Join,
+				"reverse": reverseAncestryChain,
+				"summary": deriveSummaryString,
+				"chop":    chopEssay,
+			}).
+			Parse(defaultEntryTmpl),
+	)
 	return &Entry{
+		Description: desc,
+		tmpl:        tmpl,
 		name:        name,
-		Description: description,
 		args:        make([]string, 0),
 		options:     make([]Option, 0),
+		children:    make(map[string]*Entry),
 	}, nil
+}
+
+func chopParagraph(paragraph string, length int) []string {
+	paragraph = strings.TrimSpace(paragraph)
+	splitter := regexp.MustCompile(`\s+`)
+	words := splitter.Split(paragraph, -1)
+	lines := make([]string, 0)
+
+	var b strings.Builder
+	for _, w := range words {
+		if len(w) > length {
+			continue
+		}
+		if b.Len()+len(w) > length {
+			lines = append(lines, strings.TrimSpace(b.String()))
+			b.Reset()
+		}
+		b.WriteString(w + " ")
+	}
+	lines = append(lines, strings.TrimSpace(b.String()))
+	return lines
+}
+
+func chopEssay(essay string, length int) []string {
+	lines := make([]string, 0)
+	splitter := regexp.MustCompile("\n+")
+	for _, p := range splitter.Split(essay, -1) {
+		if len(p) > 0 {
+			pLines := chopParagraph(p, length)
+			pLines = append(pLines, "")
+			lines = append(lines, pLines...)
+		}
+	}
+	if len(lines) == 0 {
+		return lines
+	}
+	return lines[:len(lines)-1]
+}
+
+func deriveSummaryString(entry Entry) string {
+	var b strings.Builder
+	b.WriteString(strings.Join(reverseAncestryChain(entry.Ancestry()), " "))
+	if len(entry.children) > 0 {
+		b.WriteString(" <command>")
+	}
+	if len(entry.options) > 0 {
+		b.WriteString(" [options]")
+	}
+	if len(entry.children) > 0 {
+		foundArgs := false
+		visit(&entry, func(e *Entry) {
+			foundArgs = len(e.args) > 0
+		})
+		if foundArgs {
+			b.WriteString(" <args>")
+		}
+	} else if len(entry.args) > 0 {
+		b.WriteString(" " + strings.Join(entry.args, " "))
+	}
+	return b.String()
+}
+
+func visit(entry *Entry, fn func(e *Entry)) {
+	fn(entry)
+	for _, c := range entry.children {
+		visit(c, fn)
+	}
+}
+
+func reverseAncestryChain(ancestry []string) []string {
+	if len(ancestry) == 0 {
+		return ancestry
+	}
+	reversed := make([]string, len(ancestry))
+	for i := 0; i <= len(ancestry)/2; i++ {
+		reversed[i] = ancestry[len(ancestry)-i-1]
+		reversed[len(ancestry)-i-1] = ancestry[i]
+	}
+	return reversed
 }

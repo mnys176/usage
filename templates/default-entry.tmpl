@@ -1,0 +1,14 @@
+Usage:
+    {{summary .}}{{if .Entries}}
+
+    To learn more about the available options for each command,
+    use the --help flag like so:
+
+    {{.Name}} <command> --help
+
+Commands:{{range $command := .Entries}}
+    {{$command.Name}}{{if $command.Args}} {{join $command.Args " "}}{{end}}{{if $command.Description}}
+        {{with chop $command.Description 64}}{{join . "\n        "}}{{end}}{{end}}{{end}}{{end}}{{if .Options}}
+
+Options:{{range $option := .Options}}
+    {{$option.Usage}}{{end}}{{end}}

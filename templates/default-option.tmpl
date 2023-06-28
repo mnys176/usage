@@ -1,0 +1,2 @@
+{{join .Aliases ", "}}{{if .Args}} {{join .Args " "}}{{end}}{{if .Description}}
+        {{with chop .Description 64}}{{join . "\n        "}}{{end}}{{end}}

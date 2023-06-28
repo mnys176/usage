@@ -33,8 +33,9 @@ func AddArg(arg string) error {
 	return global.AddArg(arg)
 }
 
-func AddOption(optopm *Option) error {
-	return nil
+func AddOption(option *Option) error {
+	checkInit()
+	return global.AddOption(option)
 }
 
 func AddEntry(e *Entry) error {

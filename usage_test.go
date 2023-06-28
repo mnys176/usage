@@ -152,6 +152,62 @@ func (tester addArgTester) assertUninitializedErrorPanic() func(*testing.T) {
 	}
 }
 
+type addOptionTester struct {
+	iOption *Option
+	oErr    error
+	oPanic  error
+}
+
+func (tester addOptionTester) assertOptions() func(*testing.T) {
+	return func(t *testing.T) {
+		iterations := 3
+		options := make([]Option, 0, iterations)
+		global = &Entry{options: make([]Option, 0)}
+		for i := 1; i <= iterations; i++ {
+			gotErr := AddOption(tester.iOption)
+			assertNilError(t, gotErr)
+			options = append(options, *tester.iOption)
+		}
+		assertOptions(t, global.options, options)
+		global = nil
+	}
+}
+
+func (tester addOptionTester) assertNoOptionError() func(*testing.T) {
+	return func(t *testing.T) {
+		global = &Entry{options: make([]Option, 0)}
+		got := AddOption(tester.iOption)
+		assertNoOptionError(t, got, tester.oErr)
+		global = nil
+	}
+}
+
+func (tester addOptionTester) assertNoAliasesError() func(*testing.T) {
+	return func(t *testing.T) {
+		global = &Entry{options: make([]Option, 0)}
+		got := AddOption(tester.iOption)
+		assertNoAliasesError(t, got, tester.oErr)
+		global = nil
+	}
+}
+
+func (tester addOptionTester) assertEmptyAliasStringError() func(*testing.T) {
+	return func(t *testing.T) {
+		global = &Entry{options: make([]Option, 0)}
+		got := AddOption(tester.iOption)
+		assertEmptyAliasStringError(t, got, tester.oErr)
+		global = nil
+	}
+}
+
+func (tester addOptionTester) assertUninitializedErrorPanic() func(*testing.T) {
+	return func(t *testing.T) {
+		defer assertUninitializedPanic(t, tester.oPanic)
+		AddOption(tester.iOption)
+		assertNilEntry(t, global)
+	}
+}
+
 func TestInit(t *testing.T) {
 	t.Run("baseline", initTester{
 		iName: "foo",
@@ -212,6 +268,38 @@ func TestAddArg(t *testing.T) {
 		oErr: errors.New("usage: cannot add arg with child entries present"),
 	}.assertExistingEntriesError())
 	t.Run("uninitialized", addArgTester{
+		oPanic: errors.New("usage: global usage not initialized"),
+	}.assertUninitializedErrorPanic())
+}
+
+func TestAddOption(t *testing.T) {
+	t.Run("baseline", addOptionTester{
+		iOption: &Option{
+			Description: "foo",
+			aliases:     []string{"foo"},
+			args:        []string{"foo"},
+		},
+	}.assertOptions())
+	t.Run("nil option", addOptionTester{
+		oErr: errors.New("usage: no option provided"),
+	}.assertNoOptionError())
+	t.Run("nil aliases", addOptionTester{
+		iOption: &Option{args: []string{"foo"}},
+		oErr:    errors.New("usage: option must have at least one alias"),
+	}.assertNoAliasesError())
+	t.Run("no aliases", addOptionTester{
+		iOption: &Option{aliases: []string{}},
+		oErr:    errors.New("usage: option must have at least one alias"),
+	}.assertNoAliasesError())
+	t.Run("single empty alias string", addOptionTester{
+		iOption: &Option{aliases: []string{""}},
+		oErr:    errors.New("usage: alias string must not be empty"),
+	}.assertEmptyAliasStringError())
+	t.Run("multiple empty alias strings", addOptionTester{
+		iOption: &Option{aliases: []string{"foo", "", "bar", ""}},
+		oErr:    errors.New("usage: alias string must not be empty"),
+	}.assertEmptyAliasStringError())
+	t.Run("uninitialized", addOptionTester{
 		oPanic: errors.New("usage: global usage not initialized"),
 	}.assertUninitializedErrorPanic())
 }

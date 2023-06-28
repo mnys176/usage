@@ -68,6 +68,15 @@ func SetEntryTemplate(tmpl *template.Template) {
 	})
 }
 
+func SetOptionTemplate(tmpl *template.Template) {
+	checkInit()
+	visit(global, func(e *Entry) {
+		for i := range e.options {
+			e.options[i].setTemplate(tmpl)
+		}
+	})
+}
+
 func checkInit() {
 	if global == nil {
 		panic(&UsageError{errors.New("global usage not initialized")})

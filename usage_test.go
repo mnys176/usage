@@ -395,11 +395,52 @@ func (tester setEntryTemplateTester) assertTemplate() func(*testing.T) {
 			ptr = &entry
 		}
 		SetEntryTemplate(tester.iTemplate)
+		visit(global, func(e *Entry) {
+			assertTemplate(t, e.tmpl, tester.iTemplate)
+		})
 		global = nil
 	}
 }
 
 func (tester setEntryTemplateTester) assertUninitializedErrorPanic() func(*testing.T) {
+	return func(t *testing.T) {
+		defer assertUninitializedPanic(t, tester.oPanic)
+		SetEntryTemplate(tester.iTemplate)
+		assertNilEntry(t, global)
+	}
+}
+
+type setOptionTemplateTester struct {
+	iTemplate *template.Template
+	oPanic    error
+}
+
+func (tester setOptionTemplateTester) assertTemplate() func(*testing.T) {
+	return func(t *testing.T) {
+		iterations := 3
+		global = &Entry{name: "base", children: make(map[string]*Entry)}
+		ptr := global
+		for i := 1; i <= iterations; i++ {
+			entry := Entry{
+				name:     fmt.Sprintf("level-%d", i),
+				children: make(map[string]*Entry),
+				options:  []Option{{}, {}, {}},
+				parent:   ptr,
+			}
+			ptr.children[entry.name] = &entry
+			ptr = &entry
+		}
+		SetOptionTemplate(tester.iTemplate)
+		visit(global, func(e *Entry) {
+			for _, option := range e.options {
+				assertTemplate(t, option.tmpl, tester.iTemplate)
+			}
+		})
+		global = nil
+	}
+}
+
+func (tester setOptionTemplateTester) assertUninitializedErrorPanic() func(*testing.T) {
 	return func(t *testing.T) {
 		defer assertUninitializedPanic(t, tester.oPanic)
 		SetEntryTemplate(tester.iTemplate)
@@ -658,6 +699,22 @@ func TestSetEntryTemplate(t *testing.T) {
 		),
 	}.assertTemplate())
 	t.Run("uninitialized", setEntryTemplateTester{
+		oPanic: errors.New("usage: global usage not initialized"),
+	}.assertUninitializedErrorPanic())
+}
+
+func TestSetOptionTemplate(t *testing.T) {
+	t.Run("baseline", setOptionTemplateTester{
+		iTemplate: template.Must(template.New("").Parse("foo")),
+	}.assertTemplate())
+	t.Run("baseline", setOptionTemplateTester{
+		iTemplate: template.Must(
+			template.New("").
+				Funcs(template.FuncMap{"fn": strings.ToUpper}).
+				Parse(`{{fn "foo"}}`),
+		),
+	}.assertTemplate())
+	t.Run("uninitialized", setOptionTemplateTester{
 		oPanic: errors.New("usage: global usage not initialized"),
 	}.assertUninitializedErrorPanic())
 }

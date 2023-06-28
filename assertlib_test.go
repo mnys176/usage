@@ -76,6 +76,21 @@ func assertExistingEntriesError(t *testing.T, got, want error) {
 	assertError(t, got, want)
 }
 
+func assertUninitializedError(t *testing.T, got, want error) {
+	if got == nil {
+		t.Fatal("no error returned with uninitialized global usage")
+	}
+	assertError(t, got, want)
+}
+
+func assertUninitializedPanic(t *testing.T, want error) {
+	r := recover()
+	if r == nil {
+		t.Fatal("no panic with uninitialized global usage")
+	}
+	assertUninitializedError(t, r.(error), want)
+}
+
 func assertName(t *testing.T, got, want string) {
 	if got != want {
 		t.Errorf("name is %q but should be %q", got, want)

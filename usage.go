@@ -1,11 +1,23 @@
 package usage
 
+import "errors"
+
+var global *Entry
+
 func Init(name string) error {
+	glob, err := NewEntry(name, "")
+	if err != nil {
+		return err
+	}
+	global = glob
 	return nil
 }
 
 func Args() []string {
-	return nil
+	if global == nil {
+		panic(&UsageError{errors.New("global usage not initialized")})
+	}
+	return global.args
 }
 
 func Options() []Option {
@@ -20,7 +32,7 @@ func AddArg(arg string) error {
 	return nil
 }
 
-func AddOption(o *Option) error {
+func AddOption(optopm *Option) error {
 	return nil
 }
 
@@ -32,10 +44,10 @@ func SetName(name string) error {
 	return nil
 }
 
-func Usage() (string, error) {
-	return "", nil
+func Usage() string {
+	return ""
 }
 
-func Lookup(lookupPath string) (string, error) {
-	return "", nil
+func Lookup(lookup string) string {
+	return ""
 }

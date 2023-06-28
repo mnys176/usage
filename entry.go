@@ -113,8 +113,23 @@ func (e Entry) Usage() string {
 	return b.String()
 }
 
-func (e Entry) Lookup(lookupPath string) string {
-	return ""
+func (e *Entry) Lookup(lookup string) string {
+	if lookup == "" {
+		return lookup
+	}
+	if lookup == e.name {
+		return e.Usage()
+	}
+	var u string
+	visit(e, func(entry *Entry) {
+		if len(entry.children) == 0 {
+			return
+		}
+		if child, ok := entry.children[lookup]; ok {
+			u = child.Usage()
+		}
+	})
+	return u
 }
 
 func NewEntry(name, desc string) (*Entry, error) {

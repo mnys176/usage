@@ -4,7 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strings"
 	"testing"
+	"text/template"
 )
 
 type entryArgsTester struct {
@@ -247,16 +249,38 @@ func (tester entryUsageTester) assertUsage() func(*testing.T) {
 }
 
 type entryLookupTester struct {
-	iEntry string
-	oUsage string
+	iLookup string
+	oUsage  string
 }
 
 func (tester entryLookupTester) assertUsage() func(*testing.T) {
 	return func(t *testing.T) {
-		entry := stringToEntry(tester.oUsage)
-		sampleEntry := Entry{name: "parent", children: map[string]*Entry{"base": entry}}
-		entry.parent = &sampleEntry
-		got := sampleEntry.Lookup(tester.iEntry)
+		const indent = "    "
+		rawTmpl := fmt.Sprintf(`{{join (reverse .Ancestry) ":"}}{{if .Options}} [options]{{end}}{{if .Entries}} <command>{{end}}{{if .Args}} <args>{{end}}{{if .Description}}
+%s{{with chop .Description 64}}{{join . "\n%s"}}{{end}}{{end}}`, indent, indent)
+		fn := template.FuncMap{
+			"join":    strings.Join,
+			"reverse": reverseAncestryChain,
+			"chop":    chopEssay,
+		}
+		iterations := 3
+		sampleEntry := Entry{
+			name:     "base",
+			children: make(map[string]*Entry),
+			tmpl:     template.Must(template.New("").Funcs(fn).Parse(rawTmpl)),
+		}
+		ptr := &sampleEntry
+		for i := 1; i <= iterations; i++ {
+			entry := Entry{
+				name:     fmt.Sprintf("level-%d", i),
+				children: make(map[string]*Entry),
+				parent:   ptr,
+				tmpl:     template.Must(template.New("").Funcs(fn).Parse(rawTmpl)),
+			}
+			ptr.children[entry.name] = &entry
+			ptr = &entry
+		}
+		got := sampleEntry.Lookup(tester.iLookup)
 		assertUsage(t, got, tester.oUsage)
 	}
 }
@@ -550,10 +574,20 @@ func TestEntryUsage(t *testing.T) {
 
 func TestEntryLookup(t *testing.T) {
 	t.Run("baseline", entryLookupTester{
-		iEntry: "base",
-		oUsage: "parent:base",
+		iLookup: "level-1",
+		oUsage:  "base:level-1 <command>",
 	}.assertUsage())
-	t.Run("untracked entry", entryLookupTester{}.assertUsage())
+	t.Run("leaf lookup", entryLookupTester{
+		iLookup: "level-3",
+		oUsage:  "base:level-1:level-2:level-3",
+	}.assertUsage())
+	t.Run("root lookup", entryLookupTester{
+		iLookup: "base",
+		oUsage:  "base <command>",
+	}.assertUsage())
+	t.Run("untracked entry", entryLookupTester{
+		iLookup: "foo",
+	}.assertUsage())
 	t.Run("empty name string", entryLookupTester{}.assertUsage())
 }
 

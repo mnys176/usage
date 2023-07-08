@@ -212,3 +212,5 @@ usage.SetEntryTemplate(
     ),
 )
 ```
+
+The entry or option structures are passed to the respective templates, so all exported fields and methods are available.

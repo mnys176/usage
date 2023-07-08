@@ -143,6 +143,9 @@ func NewEntry(name, desc string) (*Entry, error) {
 				"reverse": reverseAncestryChain,
 				"summary": deriveSummaryString,
 				"chop":    chopEssay,
+				"sub": func(a, b int) int {
+					return a - b
+				},
 			}).
 			Parse(defaultEntryTmpl),
 	)

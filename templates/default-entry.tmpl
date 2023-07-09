@@ -11,5 +11,5 @@ Commands:{{range $command := .Entries}}
         {{with chop $command.Description 64}}{{join . "\n        "}}{{end}}{{end}}{{end}}{{end}}{{if .Options}}
 
 Options:{{range $i, $option := .Options}}
-    {{$option.Usage}}{{if lt $i (sub (len .Options) 1)}}
+    {{$option.Usage}}{{if lt $i (sub (len $.Options) 1)}}
 {{end}}{{end}}{{end}}

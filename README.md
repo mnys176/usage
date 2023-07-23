@@ -17,6 +17,10 @@ Usage of example:
 
 What if one wanted to change the format of the default usage? This can be achieved by overriding the `Usage` method of a `flag.FlagSet`, but the new format only applies to that instance. One would have to manually replicate the style across each `flag.FlagSet` instance; this is where the `usage` package comes in.
 
+## Dependencies
+
+* Go v1.20
+
 ## Getting Started
 
 1. Install the package.
